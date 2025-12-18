@@ -22,7 +22,7 @@
     <main class="container">
         <div id="loading-overlay" class="hidden-section">
             <div class="spinner"></div>
-            <p>جارٍ معالجة طلبك...</p>
+            <p id="loading-text">جارٍ معالجة طلبك...</p>
         </div>
 
         <section id="home-view" class="active-section">
@@ -53,27 +53,29 @@
             </div>
 
             <div id="add-panel" class="admin-content">
-                <h3>إضافة مانجا</h3>
+                <h3>إضافة مانجا جديدة</h3>
                 <input type="text" id="manga-title" placeholder="اسم المانجا">
-                <textarea id="manga-desc" placeholder="الوصف"></textarea>
+                <textarea id="manga-desc" placeholder="قصة المانجا"></textarea>
+                <label>اختر صورة الغلاف:</label>
                 <input type="file" id="manga-cover" accept="image/*">
-                <button onclick="addNewManga()" class="action-btn">حفظ أونلاين</button>
+                <button onclick="addNewManga()" class="action-btn">حفظ في السيرفر</button>
                 <hr>
-                <h3>إضافة فصل</h3>
+                <h3>إضافة فصل جديد</h3>
                 <select id="manga-select-add"></select>
-                <input type="text" id="chapter-title" placeholder="رقم الفصل">
+                <input type="text" id="chapter-title" placeholder="رقم أو اسم الفصل">
                 <input type="file" id="chapter-file" accept="application/pdf">
                 <button onclick="addChapter()" class="action-btn">رفع الفصل</button>
             </div>
 
             <div id="manage-panel" class="admin-content hidden-tab">
-                <h3>إدارة المحتوى</h3>
+                <h3>تعديل / حذف المحتوى</h3>
                 <select id="manga-select-manage" onchange="loadMangaToEdit()"></select>
                 <div id="edit-box" class="hidden-section">
                     <input type="text" id="edit-manga-title">
                     <textarea id="edit-manga-desc"></textarea>
-                    <button onclick="updateManga()" class="action-btn">تحديث</button>
-                    <button onclick="deleteManga()" class="action-btn delete-btn">حذف نهائي</button>
+                    <button onclick="updateManga()" class="action-btn">تحديث البيانات</button>
+                    <button onclick="deleteManga()" class="action-btn delete-btn">حذف المانجا نهائياً</button>
+                    <h4>الفصول الحالية:</h4>
                     <ul id="edit-chapters-list"></ul>
                 </div>
             </div>
@@ -88,7 +90,7 @@
                     <p id="detail-desc"></p>
                 </div>
                 <div class="chapters-list-container">
-                    <h3>قائمة الفصول</h3>
+                    <h3>فصول المانجا</h3>
                     <ul id="chapters-list"></ul>
                 </div>
             </div>

@@ -7,15 +7,13 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
 
 body {
-    /* تم التغيير لـ png */
-    background: url('background.png') no-repeat center center fixed;
+    background: url('background.jpg') no-repeat center center fixed;
     background-size: cover;
     color: #333;
 }
 
 header {
-    /* تم التغيير لـ png */
-    background: url('header.png') no-repeat center center;
+    background: url('header.jpg') no-repeat center center;
     background-size: cover;
     height: 160px;
     border-bottom: 5px solid var(--q-bg);
@@ -36,10 +34,11 @@ header button {
 .container {
     max-width: 1000px;
     margin: 20px auto;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.96);
     padding: 25px;
-    min-height: 80vh;
+    min-height: 85vh;
     border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
 }
 
 .hidden-section, .hidden-tab { display: none !important; }
@@ -52,21 +51,21 @@ header button {
 }
 
 .manga-card { cursor: pointer; border-radius: 8px; overflow: hidden; border: 2px solid var(--primary); transition: 0.3s; }
-.card-image { width: 100%; height: 250px; object-fit: cover; }
+.card-image { width: 100%; height: 260px; object-fit: cover; }
 .manga-title-overlay { background: var(--primary); color: white; text-align: center; padding: 8px; font-weight: bold; }
 
-/* Admin */
+/* Admin Controls */
 .admin-content { margin-top: 20px; display: flex; flex-direction: column; gap: 12px; }
-input, textarea, select { padding: 12px; border: 1px solid #ccc; border-radius: 8px; }
-.action-btn { background: var(--primary); color: white; border: none; padding: 12px; cursor: pointer; border-radius: 8px; }
-.delete-btn { background: var(--accent); }
+input, textarea, select { padding: 12px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+.action-btn { background: var(--primary); color: white; border: none; padding: 14px; cursor: pointer; border-radius: 8px; }
+.delete-btn { background: var(--accent); margin-top: 5px; }
 
 .admin-tabs { display: flex; gap: 10px; margin-bottom: 15px; }
-.admin-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #eee; border-radius: 8px; }
+.admin-tabs button { flex: 1; padding: 12px; border: none; cursor: pointer; background: #eee; border-radius: 8px; font-weight: bold; }
 .admin-tabs button.active-tab { background: var(--primary); color: white; }
 
-/* PDF */
-#pdf-viewer-container { width: 100%; height: 80vh; background: #333; }
+/* PDF Viewer */
+#pdf-viewer-container { width: 100%; height: 80vh; background: #333; border-radius: 8px; overflow: hidden; }
 iframe { width: 100%; height: 100%; border: none; }
 
 .spinner {
@@ -74,11 +73,14 @@ iframe { width: 100%; height: 100%; border: none; }
     border-top: 4px solid var(--primary);
     border-radius: 50%;
     width: 40px; height: 40px;
-    animation: spin 1s linear infinite; margin: 20px auto;
+    animation: spin 1s linear infinite; margin: 15px auto;
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .manga-layout { display: flex; gap: 25px; }
-.manga-info-card img { width: 100%; border-radius: 10px; border: 3px solid var(--primary); }
-.chapters-list-container { flex: 2; background: #f9f9f9; padding: 20px; border-radius: 10px; }
-#chapters-list li { background: white; padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; list-style: none; }
+.manga-info-card img { width: 100%; max-width: 300px; border-radius: 10px; border: 3px solid var(--primary); }
+.chapters-list-container { flex: 1; background: #f9f9f9; padding: 20px; border-radius: 10px; }
+#chapters-list li, #edit-chapters-list li { 
+    background: white; padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; 
+    border-radius: 5px; cursor: pointer; list-style: none; display: flex; justify-content: space-between;
+}
