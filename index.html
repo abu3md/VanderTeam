@@ -11,7 +11,8 @@
 
     <header id="main-header">
         <div class="header-content">
-            <div class="logo-area"></div> 
+            <div class="logo-area">
+                </div> 
             <nav>
                 <button onclick="showSection('home-view')">الرئيسية</button>
                 <button onclick="checkAdminStatus()">لوحة الأدمن</button>
@@ -56,9 +57,9 @@
                 <input type="file" id="manga-cover" accept="image/*">
                 <button onclick="addNewManga()" class="action-btn">حفظ المانجا</button>
                 <hr>
-                <h3>إضافة فصل</h3>
+                <h3>إضافة فصل (PDF)</h3>
                 <select id="manga-select-add"></select>
-                <input type="text" id="chapter-title" placeholder="اسم الفصل">
+                <input type="text" id="chapter-title" placeholder="رقم أو اسم الفصل">
                 <input type="file" id="chapter-file" accept="application/pdf">
                 <button onclick="addChapter()" class="action-btn">رفع الفصل</button>
             </div>
@@ -69,8 +70,8 @@
                 <div id="edit-box" class="hidden-section">
                     <input type="text" id="edit-manga-title">
                     <textarea id="edit-manga-desc"></textarea>
-                    <button onclick="updateManga()" class="action-btn">تحديث البيانات</button>
-                    <button onclick="deleteManga()" class="action-btn delete-btn">حذف المانجا بالكامل</button>
+                    <button onclick="updateManga()" class="action-btn">تحديث</button>
+                    <button onclick="deleteManga()" class="action-btn delete-btn">حذف المانجا نهائياً</button>
                     <h4>الفصول:</h4>
                     <ul id="edit-chapters-list"></ul>
                 </div>
@@ -97,7 +98,7 @@
                 <button onclick="backToManga()" class="back-btn">خروج</button>
                 <span id="reader-chapter-title"></span>
             </div>
-            <div id="pdf-container"></div>
+            <div id="pdf-viewer-container"></div>
         </section>
     </main>
 
