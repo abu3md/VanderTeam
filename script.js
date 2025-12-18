@@ -4,18 +4,14 @@ const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 let mangas = [];
 
-function toggleLoader(show, text = "جارٍ المعالجة...") {
-    document.getElementById('loading-text').innerText = text;
+function toggleLoader(show) {
     document.getElementById('loading-overlay').classList.toggle('hidden-section', !show);
 }
 
-// جلب البيانات من السيرفر
-async function fetchAllData() {
-    toggleLoader(true, "جارٍ جلب المانجا...");
+async function loadData() {
+    toggleLoader(true);
     const { data, error } = await _supabase.from('mangas').select('*').order('lastUpdated', { ascending: false });
-    if (error) {
-        console.error("خطأ جلب البيانات:", error);
-    } else {
+    if (!error) {
         mangas = data;
         renderHome();
     }
@@ -25,7 +21,7 @@ async function fetchAllData() {
 function showSection(id) {
     document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden-section'));
     document.getElementById(id).classList.remove('hidden-section');
-    if (id === 'home-view') fetchAllData();
+    if (id === 'home-view') loadData();
 }
 
 function renderHome() {
@@ -40,100 +36,93 @@ function renderHome() {
     });
 }
 
-// إضافة مانجا مع معالجة أخطاء الرفع
+// إضافة المانجا
 async function addNewManga() {
     const title = document.getElementById('manga-title').value;
     const desc = document.getElementById('manga-desc').value;
     const file = document.getElementById('manga-cover').files[0];
 
-    if (!title || !file) return alert("يرجى إدخال الاسم واختيار صورة");
-    toggleLoader(true, "جارٍ رفع الصورة للسيرفر...");
+    if (!title || !file) return alert("أكمل البيانات");
+    toggleLoader(true);
 
     const fileName = `covers/${Date.now()}_${file.name}`;
-    const { data: upData, error: upError } = await _supabase.storage
-        .from('vander-files')
-        .upload(fileName, file, { upsert: true });
+    const { data, error } = await _supabase.storage.from('vander-files').upload(fileName, file);
 
-    if (upError) {
+    if (error) {
+        console.error("Storage Error:", error);
         toggleLoader(false);
-        console.error("خطأ الرفع التفصيلي:", upError);
-        return alert("فشل الرفع! تأكد من إعداد الـ Policies في Supabase Storage للسماح بالرفع (INSERT).");
+        return alert("فشل الرفع للسيرفر. تأكد من تفعيل Policies في السوبابيس.");
     }
 
     const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(fileName);
 
-    const { error: dbError } = await _supabase.from('mangas').insert([{
+    await _supabase.from('mangas').insert([{
         title, desc, cover: urlData.publicUrl, chapters: [], lastUpdated: new Date()
     }]);
 
-    if(dbError) alert("خطأ في قاعدة البيانات: " + dbError.message);
-    else alert("تم الحفظ بنجاح!");
-    
-    fetchAllData();
+    alert("تمت الإضافة!");
+    loadData();
     toggleLoader(false);
 }
 
-// رفع فصل
+// رفع الفصل
 async function addChapter() {
     const mId = document.getElementById('manga-select-add').value;
     const title = document.getElementById('chapter-title').value;
     const file = document.getElementById('chapter-file').files[0];
 
-    if (!mId || !file) return alert("اكمل بيانات الفصل");
-    toggleLoader(true, "جارٍ رفع ملف الـ PDF...");
+    if (!mId || !file) return alert("اختر المانجا والملف");
+    toggleLoader(true);
 
     const fileName = `chapters/${Date.now()}.pdf`;
     const { error: upErr } = await _supabase.storage.from('vander-files').upload(fileName, file);
 
-    if(upErr) { toggleLoader(false); return alert("خطأ في رفع ملف الفصل"); }
+    if(upErr) { toggleLoader(false); return alert("خطأ رفع PDF"); }
 
     const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(fileName);
-
     const m = mangas.find(x => x.id == mId);
-    const updatedChapters = [...m.chapters, { id: Date.now(), title, url: urlData.publicUrl }];
+    const updatedChaps = [...m.chapters, { id: Date.now(), title, url: urlData.publicUrl }];
 
-    await _supabase.from('mangas').update({ chapters: updatedChapters, lastUpdated: new Date() }).eq('id', mId);
+    await _supabase.from('mangas').update({ chapters: updatedChaps, lastUpdated: new Date() }).eq('id', mId);
 
     alert("تم رفع الفصل!");
-    fetchAllData();
+    loadData();
     toggleLoader(false);
 }
 
-// عرض التفاصيل
 function openManga(id) {
     const m = mangas.find(x => x.id == id);
     document.getElementById('detail-cover').src = m.cover;
     document.getElementById('detail-title').innerText = m.title;
     document.getElementById('detail-desc').innerText = m.desc;
     document.getElementById('chapters-list').innerHTML = m.chapters.map(c => 
-        `<li onclick="viewPDF('${c.url}', '${c.title}')">${c.title} <span>قراءة ←</span></li>`).join('');
+        `<li onclick="viewPDF('${c.url}', '${c.title}')">${c.title}</li>`).join('');
     showSection('manga-details-view');
 }
 
 function viewPDF(url, title) {
     document.getElementById('reader-chapter-title').innerText = title;
-    // إضافة پارامتر لضمان عدم الكاش وظهور الملف فوراً
-    document.getElementById('pdf-viewer-container').innerHTML = `<iframe src="${url}#toolbar=0"></iframe>`;
+    document.getElementById('pdf-viewer-container').innerHTML = `<iframe src="${url}"></iframe>`;
     showSection('reader-view');
 }
 
 function backToManga() { showSection('manga-details-view'); }
 
-// إدارة الأدمن
+// نظام الدخول
 function login() {
     if (document.getElementById('username').value === 'samer' && 
         document.getElementById('password').value === 'Samer#1212') {
         sessionStorage.setItem('isAdmin', 'true');
         checkAdminStatus();
-    } else alert("بيانات خاطئة");
+    } else alert("خطأ");
 }
 
 function checkAdminStatus() {
     if (sessionStorage.getItem('isAdmin')) {
         showSection('admin-dashboard');
-        const options = mangas.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
-        document.getElementById('manga-select-add').innerHTML = '<option value="">اختر المانجا</option>' + options;
-        document.getElementById('manga-select-manage').innerHTML = '<option value="">اختر المانجا للإدارة</option>' + options;
+        const opts = mangas.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
+        document.getElementById('manga-select-add').innerHTML = '<option value="">اختر</option>' + opts;
+        document.getElementById('manga-select-manage').innerHTML = '<option value="">اختر</option>' + opts;
     } else showSection('login-view');
 }
 
@@ -146,36 +135,4 @@ function showAdminTab(id) {
     document.getElementById('btn-tab-2').classList.toggle('active-tab', id === 'manage-panel');
 }
 
-// إدارة وتعديل
-let currentEditId = null;
-function loadMangaToEdit() {
-    currentEditId = document.getElementById('manga-select-manage').value;
-    const m = mangas.find(x => x.id == currentEditId);
-    if(!m) return document.getElementById('edit-box').classList.add('hidden-section');
-    
-    document.getElementById('edit-box').classList.remove('hidden-section');
-    document.getElementById('edit-manga-title').value = m.title;
-    document.getElementById('edit-manga-desc').value = m.desc;
-    document.getElementById('edit-chapters-list').innerHTML = m.chapters.map(c => 
-        `<li>${c.title} <button class="delete-btn" style="padding:4px" onclick="deleteChapter(${c.id})">حذف</button></li>`).join('');
-}
-
-async function updateManga() {
-    toggleLoader(true, "جارٍ التحديث...");
-    await _supabase.from('mangas').update({
-        title: document.getElementById('edit-manga-title').value,
-        desc: document.getElementById('edit-manga-desc').value
-    }).eq('id', currentEditId);
-    alert("تم التحديث");
-    fetchAllData();
-}
-
-async function deleteManga() {
-    if(!confirm("حذف نهائي؟")) return;
-    toggleLoader(true, "جارٍ الحذف...");
-    await _supabase.from('mangas').delete().eq('id', currentEditId);
-    fetchAllData();
-    document.getElementById('edit-box').classList.add('hidden-section');
-}
-
-window.onload = fetchAllData;
+window.onload = loadData;
