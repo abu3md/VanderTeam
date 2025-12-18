@@ -13,8 +13,8 @@
         <div class="header-content">
             <div class="logo-area"></div> 
             <nav>
-                <button id="btn-home">الرئيسية</button>
-                <button id="btn-admin">لوحة الأدمن</button>
+                <button onclick="showSection('home-view')">الرئيسية</button>
+                <button onclick="checkAdminStatus()">لوحة الأدمن</button>
             </nav>
         </div>
     </header>
@@ -22,15 +22,16 @@
     <main class="container">
         <div id="loading-overlay" class="hidden-section">
             <div class="spinner"></div>
-            <p>جارٍ الاتصال بالسيرفر...</p>
+            <p>جارٍ تحميل البيانات...</p>
         </div>
 
         <section id="home-view" class="active-section">
             <div class="search-bar">
-                <input type="text" id="search-input" placeholder="بحث عن مانجا...">
+                <input type="text" id="search-input" placeholder="بحث عن مانجا..." onkeyup="filterManga()">
             </div>
             <h2 class="section-title">آخر التحديثات</h2>
-            <div id="manga-grid" class="grid-container"></div>
+            <div id="manga-grid" class="grid-container">
+                </div>
         </section>
 
         <section id="login-view" class="hidden-section">
@@ -38,7 +39,7 @@
                 <h2>دخول المشرفين</h2>
                 <input type="text" id="username" placeholder="اسم المستخدم">
                 <input type="password" id="password" placeholder="كلمة المرور">
-                <button id="btn-login-submit">دخول</button>
+                <button onclick="login()">دخول</button>
                 <p id="login-error" class="error-msg"></p>
             </div>
         </section>
@@ -46,16 +47,16 @@
         <section id="admin-dashboard" class="hidden-section">
             <div class="admin-header">
                 <h2>لوحة التحكم</h2>
-                <button class="logout-btn" id="btn-logout">تسجيل خروج</button>
+                <button class="logout-btn" onclick="logout()">تسجيل خروج</button>
             </div>
             
             <div class="admin-tabs">
-                <button id="tab-add-manga" class="active-tab">إضافة مانجا</button>
-                <button id="tab-add-chapter">إضافة فصل</button>
+                <button onclick="showAdminTab('add-manga-panel')" id="btn-tab-1" class="active-tab">إضافة مانجا</button>
+                <button onclick="showAdminTab('add-chapter-panel')" id="btn-tab-2">إضافة فصل</button>
             </div>
 
             <div id="add-manga-panel" class="admin-content">
-                <form id="form-add-manga">
+                <form onsubmit="event.preventDefault(); addNewManga();">
                     <input type="text" id="manga-title" placeholder="اسم المانجا" required>
                     <input type="text" id="manga-author" placeholder="اسم الكاتب" required>
                     <input type="text" id="manga-artist" placeholder="اسم الرسام" required>
@@ -65,23 +66,23 @@
                     <input type="date" id="manga-release-date">
                     <label>صورة الغلاف:</label>
                     <input type="file" id="manga-cover" accept="image/*" required>
-                    <button type="submit" class="action-btn">حفظ ورفع البيانات</button>
+                    <button type="submit" class="action-btn">حفظ المانجا</button>
                 </form>
             </div>
 
             <div id="add-chapter-panel" class="admin-content hidden-tab">
-                <select id="manga-select" required>
-                    <option value="">جارٍ تحميل القائمة...</option>
+                <select id="manga-select">
+                    <option value="">اختر المانجا</option>
                 </select>
                 <input type="text" id="chapter-title" placeholder="عنوان الفصل (مثال: الفصل 1)" required>
                 <label>ملف الفصل (PDF):</label>
                 <input type="file" id="chapter-file" accept="application/pdf" required>
-                <button id="btn-upload-chapter" class="action-btn">رفع الفصل (PDF)</button>
+                <button onclick="addChapter()" class="action-btn">رفع الفصل</button>
             </div>
         </section>
 
         <section id="manga-details-view" class="hidden-section">
-            <button id="btn-back-home" class="back-btn">← عودة</button>
+            <button onclick="showSection('home-view')" class="back-btn">← عودة</button>
             <div class="manga-layout">
                 <div class="manga-info-card">
                     <img id="detail-cover" src="" alt="Cover">
@@ -91,7 +92,7 @@
                         <li><strong>الرسام:</strong> <span id="detail-artist"></span></li>
                         <li><strong>آخر تحديث:</strong> <span id="detail-updated"></span></li>
                     </ul>
-                    <p id="detail-desc" class="desc-text"></p>
+                    <p id="detail-desc"></p>
                 </div>
                 <div class="chapters-list-container">
                     <h3>قائمة الفصول</h3>
@@ -102,16 +103,15 @@
 
         <section id="reader-view" class="hidden-section">
             <div class="reader-header">
-                <button id="btn-close-reader" class="back-btn">إغلاق ✖</button>
+                <button onclick="backToManga()" class="back-btn">إغلاق القارئ ✖</button>
                 <span id="reader-chapter-title"></span>
             </div>
             <div class="pdf-container">
                 <iframe id="pdf-viewer" src="" width="100%" height="100%"></iframe>
             </div>
         </section>
-
     </main>
 
-    <script type="module" src="script.js"></script>
+    <script src="script.js"></script>
 </body>
 </html>
