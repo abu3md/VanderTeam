@@ -1,5 +1,5 @@
 const supabaseUrl = 'https://vmfqrsocsdtntealjyvh.supabase.co';
-const supabaseKey = 'اكتب_هنا_مفتاح_anon_key_الخاص_بك'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZnFyc29jc2R0bnRlYWxqeXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNzE2MzgsImV4cCI6MjA4MTY0NzYzOH0.Nc2MMDpqqrJwMsqH_pLjBQf6tXqLtNmwGA8LmPcqU34'; 
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 let mangas = [];
