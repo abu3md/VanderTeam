@@ -6,13 +6,13 @@
     <title>VanderTeam | فاندر تيم</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
     <header id="main-header">
         <div class="header-content">
-            <div class="logo-area">
-                </div> 
+            <div class="logo-area"></div> 
             <nav>
                 <button onclick="showSection('home-view')">الرئيسية</button>
                 <button onclick="checkAdminStatus()">لوحة الأدمن</button>
@@ -21,6 +21,11 @@
     </header>
 
     <main class="container">
+        <div id="loading-overlay" class="hidden-section">
+            <div class="spinner"></div>
+            <p>جارٍ تحديث البيانات من السيرفر...</p>
+        </div>
+
         <section id="home-view" class="active-section">
             <div class="search-bar">
                 <input type="text" id="search-input" placeholder="بحث عن مانجا..." onkeyup="filterManga()">
@@ -47,32 +52,33 @@
             
             <div class="admin-tabs">
                 <button onclick="showAdminTab('add-panel')" id="btn-tab-1" class="active-tab">إضافة</button>
-                <button onclick="showAdminTab('manage-panel')" id="btn-tab-2">تعديل وحذف</button>
+                <button onclick="showAdminTab('manage-panel')" id="btn-tab-2">إدارة وحذف</button>
             </div>
 
             <div id="add-panel" class="admin-content">
-                <h3>إضافة مانجا</h3>
+                <h3>إضافة مانجا جديدة</h3>
                 <input type="text" id="manga-title" placeholder="اسم المانجا">
-                <textarea id="manga-desc" placeholder="الوصف"></textarea>
+                <textarea id="manga-desc" placeholder="قصة المانجا"></textarea>
+                <label>غلاف المانجا:</label>
                 <input type="file" id="manga-cover" accept="image/*">
-                <button onclick="addNewManga()" class="action-btn">حفظ المانجا</button>
+                <button onclick="addNewManga()" class="action-btn">حفظ في Supabase</button>
                 <hr>
                 <h3>إضافة فصل (PDF)</h3>
                 <select id="manga-select-add"></select>
-                <input type="text" id="chapter-title" placeholder="رقم أو اسم الفصل">
+                <input type="text" id="chapter-title" placeholder="اسم الفصل (مثال: الفصل 1)">
                 <input type="file" id="chapter-file" accept="application/pdf">
                 <button onclick="addChapter()" class="action-btn">رفع الفصل</button>
             </div>
 
             <div id="manage-panel" class="admin-content hidden-tab">
-                <h3>إدارة المانجا</h3>
+                <h3>إدارة المحتوى</h3>
                 <select id="manga-select-manage" onchange="loadMangaToEdit()"></select>
                 <div id="edit-box" class="hidden-section">
                     <input type="text" id="edit-manga-title">
                     <textarea id="edit-manga-desc"></textarea>
-                    <button onclick="updateManga()" class="action-btn">تحديث</button>
+                    <button onclick="updateManga()" class="action-btn">تحديث البيانات</button>
                     <button onclick="deleteManga()" class="action-btn delete-btn">حذف المانجا نهائياً</button>
-                    <h4>الفصول:</h4>
+                    <h4>قائمة الفصول الحالية:</h4>
                     <ul id="edit-chapters-list"></ul>
                 </div>
             </div>
@@ -87,7 +93,7 @@
                     <p id="detail-desc"></p>
                 </div>
                 <div class="chapters-list-container">
-                    <h3>قائمة الفصول</h3>
+                    <h3>فصول المانجا</h3>
                     <ul id="chapters-list"></ul>
                 </div>
             </div>
@@ -95,7 +101,7 @@
 
         <section id="reader-view" class="hidden-section">
             <div class="reader-header">
-                <button onclick="backToManga()" class="back-btn">خروج</button>
+                <button onclick="backToManga()" class="back-btn">إغلاق القارئ</button>
                 <span id="reader-chapter-title"></span>
             </div>
             <div id="pdf-viewer-container"></div>
