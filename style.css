@@ -1,111 +1,74 @@
 :root {
-    --bg-color: #f4f4f4;
-    --card-bg: #808080;
-    --text-color: #333;
-    --primary-color: #093e58; 
-    --accent-color: #681212; 
+    --primary: #093e58;
+    --accent: #681212;
+    --q-color: #26102e; /* لون قائمة السؤال الجديد */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
 
 body {
-    background-image: url('background.jpg'); /* تأكد أن الاسم يطابق اسم الملف المرفوع */
+    background: url('./background.jpg') no-repeat center center fixed;
     background-size: cover;
-    background-attachment: fixed;
-    background-position: center;
-    color: var(--text-color);
+    color: #333;
 }
 
 header {
-    background-image: url('header.jpg'); /* تأكد أن الاسم يطابق اسم الملف المرفوع */
+    background: url('./header.jpg') no-repeat center center;
     background-size: cover;
-    background-position: center;
-    height: 180px;
-    border-bottom: 3px solid #000;
+    height: 160px;
+    border-bottom: 4px solid var(--q-color);
 }
 
-.header-content {
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-end;
-    height: 100%;
-    padding: 15px;
-}
+.header-content { display: flex; justify-content: flex-end; align-items: flex-end; height: 100%; padding: 15px; }
 
 header button {
-    background: rgba(0,0,0,0.8);
-    color: #fff;
-    border: 1px solid #fff;
-    padding: 10px 20px;
-    margin-right: 10px;
+    background: var(--q-color);
+    color: white;
+    border: 1px solid white;
+    padding: 8px 15px;
+    margin-left: 10px;
     cursor: pointer;
-    font-weight: bold;
 }
-
-header button:hover { background: var(--primary-color); }
 
 .container {
-    max-width: 1100px;
+    max-width: 1000px;
     margin: 20px auto;
-    padding: 20px;
     background: rgba(255, 255, 255, 0.95);
+    padding: 20px;
     min-height: 80vh;
-    border-radius: 10px;
+    border-radius: 12px;
 }
 
-.hidden-section { display: none !important; }
-
-/* Grid */
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 25px;
-    margin-top: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 20px;
 }
 
-.manga-card { cursor: pointer; text-align: center; }
-.card-image {
-    width: 100%;
-    height: 250px;
-    background-color: var(--card-bg);
-    border-radius: 8px;
-    object-fit: cover;
-    border: 3px solid #333;
-}
-
-.manga-title-overlay { font-weight: bold; margin-top: 8px; font-size: 1.1em; }
+.manga-card { cursor: pointer; border: 2px solid var(--primary); border-radius: 8px; overflow: hidden; }
+.card-image { width: 100%; height: 220px; object-fit: cover; }
+.manga-title-overlay { background: var(--primary); color: white; padding: 5px; text-align: center; }
 
 /* Admin */
-.login-box, .admin-content { max-width: 450px; margin: 50px auto; display: flex; flex-direction: column; gap: 15px; }
-input, textarea, select { padding: 12px; border: 1px solid #ccc; border-radius: 5px; width: 100%; }
-.action-btn { background: var(--primary-color); color: white; border: none; padding: 15px; cursor: pointer; border-radius: 5px; }
+.hidden-section, .hidden-tab { display: none !important; }
+.admin-content { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
+input, textarea, select { padding: 10px; border: 1px solid #ccc; border-radius: 5px; }
+.action-btn { background: var(--primary); color: white; border: none; padding: 10px; cursor: pointer; }
+.delete-btn { background: var(--accent); margin-top: 5px; }
 
-.admin-tabs { display: flex; justify-content: center; margin-bottom: 20px; gap: 10px; }
-.admin-tabs button { padding: 10px 30px; border: none; background: #ddd; cursor: pointer; }
-.admin-tabs button.active-tab { background: var(--primary-color); color: white; }
+.admin-tabs { display: flex; gap: 10px; border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+.admin-tabs button { flex: 1; padding: 10px; border: none; cursor: pointer; }
+.admin-tabs button.active-tab { background: var(--q-color); color: white; }
 
-/* Manga Details */
-.manga-layout { display: flex; gap: 40px; margin-top: 20px; }
-.manga-info-card { flex: 1; }
-.manga-info-card img { width: 100%; max-width: 300px; border-radius: 10px; }
-.chapters-list-container { flex: 1; background: #eee; padding: 20px; border-radius: 10px; }
-#chapters-list { list-style: none; margin-top: 15px; }
-#chapters-list li { background: #fff; padding: 12px; margin-bottom: 10px; cursor: pointer; border: 1px solid #ccc; }
-#chapters-list li:hover { background: var(--primary-color); color: #white; }
+/* PDF Reader */
+#pdf-wrapper { width: 100%; height: 80vh; background: #555; }
+embed { width: 100%; height: 100%; }
 
-/* Reader */
-.pdf-container { height: 85vh; margin-top: 10px; border: 2px solid #333; }
-
-/* Spinner */
-.spinner {
-    border: 4px solid #f3f3f3;
-    border-top: 4px solid var(--primary-color);
-    border-radius: 50%;
-    width: 40px;
-    height: 40px;
-    animation: spin 1s linear infinite;
-    margin: 20px auto;
+.manga-layout { display: flex; gap: 20px; }
+.manga-info-card img { width: 100%; border-radius: 10px; }
+.chapters-list-container { flex: 1; background: #f0f0f0; padding: 15px; border-radius: 10px; }
+#chapters-list li, #edit-chapters-list li { 
+    background: white; padding: 10px; margin-bottom: 5px; 
+    list-style: none; display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid #ddd;
 }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-@media (max-width: 768px) { .manga-layout { flex-direction: column; } }
