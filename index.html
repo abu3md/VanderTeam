@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VanderTeam | فاندر تيم</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <header id="main-header">
+        <div class="header-content">
+            <div class="logo-area"></div> 
+            <nav>
+                <button id="btn-home">الرئيسية</button>
+                <button id="btn-admin">لوحة الأدمن</button>
+            </nav>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="loading-overlay" class="hidden-section">
+            <div class="spinner"></div>
+            <p>جارٍ الاتصال بالسيرفر...</p>
+        </div>
+
+        <section id="home-view" class="active-section">
+            <div class="search-bar">
+                <input type="text" id="search-input" placeholder="بحث عن مانجا...">
+            </div>
+            <h2 class="section-title">آخر التحديثات</h2>
+            <div id="manga-grid" class="grid-container"></div>
+        </section>
+
+        <section id="login-view" class="hidden-section">
+            <div class="login-box">
+                <h2>دخول المشرفين</h2>
+                <input type="text" id="username" placeholder="اسم المستخدم">
+                <input type="password" id="password" placeholder="كلمة المرور">
+                <button id="btn-login-submit">دخول</button>
+                <p id="login-error" class="error-msg"></p>
+            </div>
+        </section>
+
+        <section id="admin-dashboard" class="hidden-section">
+            <div class="admin-header">
+                <h2>لوحة التحكم</h2>
+                <button class="logout-btn" id="btn-logout">تسجيل خروج</button>
+            </div>
+            
+            <div class="admin-tabs">
+                <button id="tab-add-manga" class="active-tab">إضافة مانجا</button>
+                <button id="tab-add-chapter">إضافة فصل</button>
+            </div>
+
+            <div id="add-manga-panel" class="admin-content">
+                <form id="form-add-manga">
+                    <input type="text" id="manga-title" placeholder="اسم المانجا" required>
+                    <input type="text" id="manga-author" placeholder="اسم الكاتب" required>
+                    <input type="text" id="manga-artist" placeholder="اسم الرسام" required>
+                    <textarea id="manga-desc" placeholder="قصة المانجا"></textarea>
+                    <input type="text" id="manga-genre" placeholder="التصنيفات">
+                    <label>تاريخ الإصدار:</label>
+                    <input type="date" id="manga-release-date">
+                    <label>صورة الغلاف:</label>
+                    <input type="file" id="manga-cover" accept="image/*" required>
+                    <button type="submit" class="action-btn">حفظ ورفع البيانات</button>
+                </form>
+            </div>
+
+            <div id="add-chapter-panel" class="admin-content hidden-tab">
+                <select id="manga-select" required>
+                    <option value="">جارٍ تحميل القائمة...</option>
+                </select>
+                <input type="text" id="chapter-title" placeholder="عنوان الفصل (مثال: الفصل 1)" required>
+                <label>ملف الفصل (PDF):</label>
+                <input type="file" id="chapter-file" accept="application/pdf" required>
+                <button id="btn-upload-chapter" class="action-btn">رفع الفصل (PDF)</button>
+            </div>
+        </section>
+
+        <section id="manga-details-view" class="hidden-section">
+            <button id="btn-back-home" class="back-btn">← عودة</button>
+            <div class="manga-layout">
+                <div class="manga-info-card">
+                    <img id="detail-cover" src="" alt="Cover">
+                    <h1 id="detail-title"></h1>
+                    <ul class="meta-data">
+                        <li><strong>الكاتب:</strong> <span id="detail-author"></span></li>
+                        <li><strong>الرسام:</strong> <span id="detail-artist"></span></li>
+                        <li><strong>آخر تحديث:</strong> <span id="detail-updated"></span></li>
+                    </ul>
+                    <p id="detail-desc" class="desc-text"></p>
+                </div>
+                <div class="chapters-list-container">
+                    <h3>قائمة الفصول</h3>
+                    <ul id="chapters-list"></ul>
+                </div>
+            </div>
+        </section>
+
+        <section id="reader-view" class="hidden-section">
+            <div class="reader-header">
+                <button id="btn-close-reader" class="back-btn">إغلاق ✖</button>
+                <span id="reader-chapter-title"></span>
+            </div>
+            <div class="pdf-container">
+                <iframe id="pdf-viewer" src="" width="100%" height="100%"></iframe>
+            </div>
+        </section>
+
+    </main>
+
+    <script type="module" src="script.js"></script>
+</body>
+</html>
