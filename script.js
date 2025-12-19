@@ -4,6 +4,7 @@ const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 let mangas = [];
 
+// Router Logic
 const navigateTo = url => { history.pushState(null, null, url); router(); };
 const router = async () => {
     const path = window.location.pathname;
@@ -13,9 +14,14 @@ const router = async () => {
     const { data } = await _supabase.from('mangas').select('*').order('lastUpdated', { ascending: false });
     mangas = data || [];
 
-    if (path === "/" || path === "/index.html") renderHome(app);
-    else if (path === "/admin") renderAdmin(app);
-    else if (path.startsWith("/manga/")) {
+    // حقن البانر فقط في الصفحة الرئيسية
+    const bannerHtml = path === "/" || path === "/index.html" ? `<div class="site-banner"></div>` : "";
+    
+    if (path === "/" || path === "/index.html") {
+        app.innerHTML = bannerHtml + renderHome();
+    } else if (path === "/admin") {
+        renderAdmin(app);
+    } else if (path.startsWith("/manga/")) {
         const parts = path.split("/");
         const mTitle = decodeURIComponent(parts[2]);
         const cTitle = parts[3] ? decodeURIComponent(parts[3]) : null;
@@ -28,13 +34,14 @@ document.addEventListener("click", e => {
     if (e.target.closest("[data-link]")) { e.preventDefault(); navigateTo(e.target.closest("[data-link]").href); }
 });
 
-function renderHome(container) {
-    container.innerHTML = `<div class="grid-container">
+// Renderers
+function renderHome() {
+    return `<div class="grid-container">
         ${mangas.map(m => `
-            <a href="/manga/${encodeURIComponent(m.title)}" class="manga-card" data-link>
-                <div class="card-img-box"><img src="${m.cover}"></div>
-                <div class="card-text">
-                    <span class="card-title">${m.title}</span>
+            <a href="/manga/${encodeURIComponent(m.title)}" class="manga-card" data-link style="text-decoration:none;">
+                <div class="card-img-box"><img src="${m.cover}" style="width:100%; height:100%; object-fit:cover;"></div>
+                <div class="card-text" style="margin-top:10px; text-align:center;">
+                    <span style="background:var(--primary); color:white; padding:5px 15px; border-radius:8px; font-weight:900;">${m.title}</span>
                 </div>
             </a>
         `).join('')}
@@ -44,33 +51,33 @@ function renderHome(container) {
 function renderDetails(container, title) {
     const m = mangas.find(x => x.title === title);
     if (!m) return container.innerHTML = "<h1>غير موجود</h1>";
-    
+
     container.innerHTML = `
-        <div class="floating-layout">
-            <div class="island side-cover-island">
+        <div class="manga-detail-layout">
+            <div class="island cover-island">
                 <img src="${m.cover}">
                 <div class="interaction-bar">
-                    <img src="/hart.png" alt="Like">
-                    <img src="/comment.png" alt="Comment">
-                    <img src="/save.png" alt="Save">
+                    <img src="/hart.png" title="إعجاب">
+                    <img src="/comment.png" title="تعليق">
+                    <img src="/save.png" title="حفظ">
                 </div>
             </div>
 
             <div class="island info-island">
                 <h1>${m.title}</h1>
-                <div class="data-row"><span>الكاتب:</span> <span>${m.author || '-'}</span></div>
-                <div class="data-row"><span>الرسام:</span> <span>${m.artist || '-'}</span></div>
-                <div class="data-row"><span>تاريخ الصدور:</span> <span>${m.releaseDate || '-'}</span></div>
-                <div class="data-row"><span>التصنيفات:</span> <span>${m.genres || '-'}</span></div>
-                <div class="data-row"><span>الناشر:</span> <span>${m.publisher || '-'}</span></div>
-                <div class="data-row"><span>آخر تحديث:</span> <span>${new Date(m.lastUpdated).toLocaleDateString('ar-EG')}</span></div>
-                <p style="margin-top:20px; line-height:1.8;">${m.desc || 'لا يوجد وصف متاح.'}</p>
+                <div class="data-item"><span>تاريخ التحديث:</span> <span>${new Date(m.lastUpdated).toLocaleDateString('ar-EG')}</span></div>
+                <div class="data-item"><span>الكاتب:</span> <span>${m.author || '-'}</span></div>
+                <div class="data-item"><span>الرسام:</span> <span>${m.artist || '-'}</span></div>
+                <div class="data-item"><span>التصنيفات:</span> <span>${m.genres || '-'}</span></div>
+                <div class="data-item"><span>الحالة:</span> <span>${m.publisher || '-'}</span></div>
+                <hr style="margin:20px 0;">
+                <p style="line-height:1.8; font-size:1.1rem;">${m.desc || 'لا يوجد وصف.'}</p>
             </div>
 
             <div class="island chapters-island">
-                <h3 style="margin-bottom:15px; text-align:center; color:var(--primary)">الفصول</h3>
+                <h3 style="margin-bottom:20px; color:var(--primary); text-align:center;">قائمة الفصول</h3>
                 ${(m.chapters || []).map(ch => `
-                    <div class="chapter-btn" onclick="navigateTo('/manga/${encodeURIComponent(m.title)}/${encodeURIComponent(ch.title)}')">
+                    <div class="ch-item" onclick="navigateTo('/manga/${encodeURIComponent(m.title)}/${encodeURIComponent(ch.title)}')">
                         ${ch.title}
                     </div>
                 `).join('')}
@@ -78,55 +85,78 @@ function renderDetails(container, title) {
         </div>`;
 }
 
+// Admin Logic
 function renderAdmin(container) {
     if (!sessionStorage.getItem('isAdmin')) {
         container.innerHTML = `
-            <div class="island admin-login-box">
-                <h2 style="text-align:center; margin-bottom:15px;">دخول المشرفين</h2>
-                <input type="text" id="adm-user" placeholder="اسم المستخدم">
-                <input type="password" id="adm-pass" placeholder="كلمة المرور">
-                <button class="action-btn" onclick="login()">دخول</button>
+            <div class="island" style="max-width:400px; margin:100px auto;">
+                <h2 style="text-align:center;">دخول الإدارة</h2>
+                <input type="text" id="user" placeholder="اسم المستخدم">
+                <input type="password" id="pass" placeholder="كلمة المرور">
+                <button class="action-btn" style="width:100%;" onclick="login()">دخول</button>
             </div>`;
         return;
     }
+
     container.innerHTML = `
-        <div style="text-align:center; margin-bottom:20px;">
-            <button class="action-btn" style="width:auto; padding:5px 20px;" onclick="logout()">خروج</button>
+        <div style="display:flex; justify-content:center; gap:20px; margin-bottom:30px;">
+            <button class="action-btn" onclick="renderAdminForm('add')">إضافة مانجا</button>
+            <button class="action-btn" onclick="renderAdminForm('edit')">تعديل مانجا</button>
+            <button class="action-btn" style="background:var(--accent)" onclick="logout()">خروج</button>
         </div>
-        <div class="floating-layout">
-            <div class="island side-cover-island">
-                <h3>الغلاف</h3>
-                <input type="file" id="in-c">
-            </div>
-            <div class="island info-island">
-                <h3>إضافة/تعديل مانجا</h3>
-                <input id="in-t" placeholder="العنوان">
-                <input id="in-a" placeholder="الكاتب">
-                <input id="in-r" placeholder="الرسام">
-                <input id="in-g" placeholder="التصنيفات">
-                <input id="in-p" placeholder="الناشر">
-                <input id="in-d" placeholder="التاريخ">
-                <textarea id="in-desc" placeholder="الوصف" style="height:100px; width:100%;"></textarea>
-                <button class="action-btn" onclick="sendAdd()">حفظ البيانات</button>
-            </div>
-            <div class="island chapters-island">
-                <h3>رفع الفصول</h3>
-                <input id="ch-t" placeholder="عنوان الفصل">
-                <input type="file" id="ch-f">
-                <p>اختر مانجا أولاً للتعديل أو أضف واحدة جديدة.</p>
-            </div>
-        </div>`;
+        <div id="admin-action-area"></div>`;
+}
+
+function renderAdminForm(type) {
+    const area = document.getElementById('admin-action-area');
+    if(type === 'add') {
+        area.innerHTML = `
+            <div class="island" style="max-width:800px; margin:auto;">
+                <h3>نشر مانجا جديدة</h3>
+                <input id="t" placeholder="العنوان">
+                <input id="a" placeholder="الكاتب">
+                <input id="g" placeholder="التصنيفات">
+                <textarea id="d" placeholder="الوصف" style="height:150px;"></textarea>
+                <label>غلاف المانجا:</label>
+                <input type="file" id="c">
+                <button class="action-btn" onclick="executeAdd()">حفظ ونشر</button>
+            </div>`;
+    } else {
+        area.innerHTML = `
+            <div class="island" style="max-width:800px; margin:auto;">
+                <select id="sel" onchange="setupEdit(this.value)">
+                    <option>اختر مانجا للتعديل</option>
+                    ${mangas.map(m => `<option>${m.title}</option>`).join('')}
+                </select>
+                <div id="edit-fields"></div>
+            </div>`;
+    }
+}
+
+async function executeAdd() {
+    const file = document.getElementById('c').files[0];
+    const path = `covers/${Date.now()}.png`;
+    await _supabase.storage.from('vander-files').upload(path, file);
+    const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
+
+    await _supabase.from('mangas').insert([{
+        title: document.getElementById('t').value,
+        cover: data.publicUrl,
+        author: document.getElementById('a').value,
+        genres: document.getElementById('g').value,
+        desc: document.getElementById('d').value,
+        chapters: [], lastUpdated: new Date()
+    }]);
+    alert("تم الإضافة!");
+    router();
 }
 
 function login() {
-    const user = document.getElementById('adm-user').value;
-    const pass = document.getElementById('adm-pass').value;
-    if(user === "samer" && pass === "Samer#1212") {
+    if(document.getElementById('user').value === "samer" && document.getElementById('pass').value === "Samer#1212") {
         sessionStorage.setItem('isAdmin','t');
         router();
-    } else alert("خطأ في البيانات");
+    }
 }
 function logout() { sessionStorage.removeItem('isAdmin'); router(); }
-function toggleL(s) { document.getElementById('loading-overlay').classList.toggle('hidden', !s); }
 
 window.onload = router;
