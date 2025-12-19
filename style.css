@@ -35,11 +35,10 @@ header button {
 .container {
     max-width: 1000px;
     margin: 20px auto;
-    background: rgba(255, 255, 255, 0.97);
-    padding: 20px;
+    background: rgba(255, 255, 255, 0.98);
+    padding: 25px;
     min-height: 80vh;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
 }
 
 .hidden-section, .hidden-tab { display: none !important; }
@@ -47,20 +46,19 @@ header button {
 .grid-container {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-    gap: 20px;
+    gap: 25px;
     margin-top: 20px;
 }
 
 .manga-card { 
     cursor: pointer; 
-    border-radius: 8px; 
+    border-radius: 10px; 
     overflow: hidden; 
     border: 2px solid var(--primary); 
     background: #fff; 
-    transition: 0.3s;
+    transition: transform 0.3s;
 }
-
-.manga-card:hover { transform: scale(1.03); }
+.manga-card:hover { transform: translateY(-5px); }
 
 .card-image { width: 100%; height: 260px; object-fit: cover; }
 
@@ -68,52 +66,50 @@ header button {
     background: var(--primary); 
     color: white; 
     text-align: center; 
-    padding: 8px; 
-    font-weight: bold; 
-    font-size: 14px;
+    padding: 10px; 
+    font-weight: bold;
 }
 
-.admin-tabs { display: flex; gap: 10px; margin: 20px 0; }
-.admin-tabs button { flex: 1; padding: 12px; cursor: pointer; border: none; background: #ddd; font-weight: bold; border-radius: 5px; }
-.admin-tabs button.active-tab { background: var(--primary); color: white; }
-
-.admin-content { display: flex; flex-direction: column; gap: 15px; }
-input, textarea, select { padding: 12px; border: 1px solid #ccc; border-radius: 8px; width: 100%; font-size: 16px; }
+.admin-tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+.admin-tabs button { flex: 1; padding: 12px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; }
+.active-tab { background: var(--primary) !important; color: white; }
 
 .action-btn { 
     background: var(--primary); 
     color: white; 
     border: none; 
-    padding: 12px 25px; 
-    cursor: pointer; 
+    padding: 12px 20px; 
     border-radius: 8px; 
+    cursor: pointer; 
     font-weight: bold; 
     width: 100%;
 }
 
-.logout-btn { background: var(--accent); color: white; border: none; padding: 5px 15px; border-radius: 4px; cursor: pointer; }
+.logout-btn { background: var(--accent); color: white; border: none; padding: 8px 15px; border-radius: 5px; cursor: pointer; }
 
-#pdf-viewer-container { width: 100%; height: 85vh; background: #333; border-radius: 8px; }
+input, textarea, select { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid #ddd; border-radius: 8px; }
+
+#pdf-viewer-container { width: 100%; height: 80vh; border-radius: 8px; overflow: hidden; }
 iframe { width: 100%; height: 100%; border: none; }
+
+.chapters-list-container ul li {
+    background: #f8f9fa;
+    padding: 15px;
+    margin-bottom: 10px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    cursor: pointer;
+    border: 1px solid #eee;
+}
+.chapters-list-container ul li:hover { border-color: var(--primary); }
 
 .spinner {
     border: 4px solid #f3f3f3;
     border-top: 4px solid var(--primary);
     border-radius: 50%;
     width: 40px; height: 40px;
-    animation: spin 1s linear infinite; margin: 20px auto;
+    animation: spin 1s linear infinite;
+    margin: 20px auto;
 }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-
-.chapters-list-container ul li {
-    background: #fff;
-    padding: 15px;
-    margin-bottom: 10px;
-    border: 1px solid #eee;
-    border-radius: 8px;
-    display: flex;
-    justify-content: space-between;
-    cursor: pointer;
-    transition: 0.2s;
-}
-.chapters-list-container ul li:hover { background: #f9f9f9; border-color: var(--primary); }
