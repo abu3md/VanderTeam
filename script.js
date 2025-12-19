@@ -5,6 +5,7 @@ const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 let mangas = [];
 
 const navigateTo = url => { history.pushState(null, null, url); router(); };
+
 const router = async () => {
     const path = window.location.pathname;
     const app = document.getElementById('app');
@@ -60,6 +61,7 @@ function renderDetails(container, title) {
                 <div class="data-row"><span>الرسام:</span> <span>${m.artist || '-'}</span></div>
                 <div class="data-row"><span>التصنيفات:</span> <span>${m.genres || '-'}</span></div>
                 <div class="data-row"><span>الناشر:</span> <span>${m.publisher || '-'}</span></div>
+                <div class="data-row"><span>تاريخ الصدور:</span> <span>${m.releaseDate || '-'}</span></div>
                 <hr style="margin:20px 0;">
                 <p style="line-height:1.8;">${m.desc || ''}</p>
             </div>
@@ -84,7 +86,7 @@ function renderAdmin(container) {
         <div style="max-width:1200px; margin:auto; padding:20px;">
             <div style="display:flex; gap:10px; margin-bottom:20px;">
                 <button class="action-btn" onclick="showForm('add')">نشر مانجا جديدة</button>
-                <button class="action-btn" onclick="showForm('edit')">إدارة المانجا والفصول</button>
+                <button class="action-btn" onclick="showForm('edit')">إدارة وتعديل</button>
                 <button class="action-btn" style="background:var(--accent)" onclick="logout()">خروج</button>
             </div>
             <div id="form-area"></div>
@@ -95,21 +97,24 @@ function showForm(type) {
     const area = document.getElementById('form-area');
     if(type === 'add') {
         area.innerHTML = `<div class="island">
-            <h3>بيانات المانجا الجديدة</h3>
-            <input id="in-t" placeholder="عنوان المانجا">
-            <input id="in-a" placeholder="اسم الكاتب">
-            <input id="in-r" placeholder="اسم الرسام">
-            <input id="in-g" placeholder="التصنيفات">
-            <input id="in-pub" placeholder="الناشر">
-            <textarea id="in-d" placeholder="وصف القصة" style="height:120px;"></textarea>
-            <label>اختر صورة الغلاف:</label>
+            <h3>إضافة مانجا كاملة البيانات</h3>
+            <div class="admin-form-grid">
+                <input id="in-t" placeholder="عنوان المانجا">
+                <input id="in-a" placeholder="اسم الكاتب">
+                <input id="in-r" placeholder="اسم الرسام">
+                <input id="in-g" placeholder="التصنيفات">
+                <input id="in-pub" placeholder="الناشر">
+                <input id="in-date" placeholder="تاريخ الصدور">
+            </div>
+            <textarea id="in-d" placeholder="وصف القصة بالتفصيل" style="height:120px;"></textarea>
+            <label>غلاف المانجا:</label>
             <input type="file" id="in-c">
-            <button class="action-btn" onclick="saveNew()">نشر المانجا الآن</button>
+            <button class="action-btn" onclick="saveNew()">حفظ المانجا الآن</button>
         </div>`;
     } else {
         area.innerHTML = `<div class="island">
-            <select id="s-m" onchange="loadEdit(this.value)">
-                <option>اختر المانجا للتعديل</option>
+            <select id="s-m" onchange="setupEdit(this.value)">
+                <option>اختر المانجا للتعديل عليها</option>
                 ${mangas.map(m=>`<option>${m.title}</option>`).join('')}
             </select>
             <div id="e-fields"></div>
@@ -123,9 +128,7 @@ async function saveNew() {
     if(!title || !file) return alert("العنوان والغلاف مطلوبان");
 
     const path = `covers/${Date.now()}_${file.name}`;
-    const { data: uploadData, error: uploadError } = await _supabase.storage.from('vander-files').upload(path, file);
-    if(uploadError) return alert("خطأ في رفع الصورة");
-
+    const { data: uploadData } = await _supabase.storage.from('vander-files').upload(path, file);
     const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(path);
 
     const { error } = await _supabase.from('mangas').insert([{
@@ -135,13 +138,14 @@ async function saveNew() {
         artist: document.getElementById('in-r').value,
         genres: document.getElementById('in-g').value,
         publisher: document.getElementById('in-pub').value,
+        releaseDate: document.getElementById('in-date').value,
         desc: document.getElementById('in-d').value,
         chapters: [],
         lastUpdated: new Date()
     }]);
 
-    if(!error) { alert("تم النشر بنجاح!"); router(); }
-    else alert("خطأ في حفظ البيانات");
+    if(!error) { alert("تم الحفظ بنجاح!"); router(); }
+    else alert("حدث خطأ أثناء الحفظ");
 }
 
 function login() {
