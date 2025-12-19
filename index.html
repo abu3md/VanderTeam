@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VanderTeam | فاندر تيم</title>
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
@@ -13,126 +13,19 @@
     <header id="main-header">
         <div class="header-content">
             <nav>
-                <button onclick="showSection('home-view')">الرئيسية</button>
-                <button onclick="checkAdminStatus()">لوحة الأدمن</button>
+                <a href="/" data-link>الرئيسية</a>
+                <a href="/admin" data-link>لوحة الأدمن</a>
             </nav>
         </div>
     </header>
 
-    <main class="container">
-        <div id="loading-overlay" class="hidden-section">
-            <div class="spinner"></div>
-            <p>انتظر قليلاً...</p>
-        </div>
+    <main id="app">
+        </main>
 
-        <section id="home-view" class="active-section">
-            <div class="search-bar">
-                <input type="text" id="search-input" placeholder="بحث عن مانجا..." onkeyup="filterManga()">
-            </div>
-            <h2 class="section-title">آخر التحديثات</h2>
-            <div id="manga-grid" class="grid-container"></div>
-        </section>
+    <div id="loading-overlay" class="hidden">
+        <div class="spinner"></div>
+    </div>
 
-        <section id="login-view" class="hidden-section">
-            <div class="login-box">
-                <h2>دخول المشرفين</h2>
-                <input type="text" id="username" placeholder="اسم المستخدم">
-                <input type="password" id="password" placeholder="كلمة المرور">
-                <button onclick="login()" class="action-btn">دخول</button>
-            </div>
-        </section>
-
-        <section id="admin-dashboard" class="hidden-section">
-            <div class="admin-header">
-                <h2>لوحة التحكم</h2>
-                <button class="logout-btn" onclick="logout()">خروج</button>
-            </div>
-            <div class="admin-tabs">
-                <button onclick="showAdminTab('add-panel')" id="btn-tab-1" class="active-tab">إضافة مانجا</button>
-                <button onclick="showAdminTab('manage-panel')" id="btn-tab-2">إدارة المحتوى</button>
-            </div>
-
-            <div id="add-panel" class="admin-content">
-                <div class="form-grid">
-                    <input type="text" id="manga-title" placeholder="اسم المانجا">
-                    <input type="text" id="manga-author" placeholder="الكاتب">
-                    <input type="text" id="manga-artist" placeholder="الرسام">
-                    <input type="text" id="manga-date" placeholder="تاريخ الصدور (مثلاً: 2024)">
-                    <input type="text" id="manga-genres" placeholder="التصنيفات (خيال، اكشن...)">
-                    <input type="text" id="manga-publisher" placeholder="اسم الناشر من الفريق">
-                </div>
-                <textarea id="manga-desc" placeholder="وصف المانجا"></textarea>
-                <label>صورة الغلاف:</label>
-                <input type="file" id="manga-cover" accept="image/*">
-                <button onclick="addNewManga()" class="action-btn">حفظ المانجا أونلاين</button>
-            </div>
-
-            <div id="manage-panel" class="admin-content hidden-section">
-                <select id="manga-select-manage" onchange="loadMangaToEdit()"></select>
-                
-                <div id="edit-box" class="hidden-section">
-                    <div class="edit-section-header">تعديل بيانات المانجا</div>
-                    <div class="form-grid">
-                        <input type="text" id="edit-manga-title" placeholder="الاسم">
-                        <input type="text" id="edit-manga-author" placeholder="الكاتب">
-                        <input type="text" id="edit-manga-artist" placeholder="الرسام">
-                        <input type="text" id="edit-manga-date" placeholder="تاريخ الصدور">
-                        <input type="text" id="edit-manga-genres" placeholder="التصنيفات">
-                        <input type="text" id="edit-manga-publisher" placeholder="الناشر">
-                    </div>
-                    <textarea id="edit-manga-desc" placeholder="الوصف"></textarea>
-                    <label>تغيير الغلاف (اختياري):</label>
-                    <input type="file" id="edit-manga-cover" accept="image/*">
-                    
-                    <div class="admin-actions">
-                        <button onclick="updateManga()" class="action-btn">تحديث البيانات</button>
-                        <button onclick="deleteManga()" class="action-btn delete-btn">حذف المانجا</button>
-                    </div>
-
-                    <hr>
-                    <div class="edit-section-header">إدارة الفصول</div>
-                    <div class="add-chapter-inline">
-                        <input type="text" id="new-chapter-title" placeholder="رقم الفصل">
-                        <input type="file" id="new-chapter-file" accept="application/pdf">
-                        <button onclick="addChapter()" class="action-btn">إضافة فصل</button>
-                    </div>
-                    <ul id="admin-chapters-list" class="admin-list"></ul>
-                </div>
-            </div>
-        </section>
-
-        <section id="manga-details-view" class="hidden-section">
-            <button onclick="showSection('home-view')" class="back-btn">← عودة</button>
-            <div class="manga-layout">
-                <div class="manga-info-card">
-                    <img id="detail-cover" src="">
-                    <h1 id="detail-title"></h1>
-                    <div class="manga-meta">
-                        <p><strong>آخر تحديث:</strong> <span id="detail-last-update"></span></p>
-                        <p><strong>تاريخ الصدور:</strong> <span id="detail-date"></span></p>
-                        <p><strong>الكاتب:</strong> <span id="detail-author"></span></p>
-                        <p><strong>الرسام:</strong> <span id="detail-artist"></span></p>
-                        <p><strong>الناشر:</strong> <span id="detail-publisher"></span></p>
-                        <p><strong>التصنيفات:</strong> <span id="detail-genres"></span></p>
-                    </div>
-                    <p id="detail-desc" class="desc-text"></p>
-                </div>
-                <div class="chapters-list-container">
-                    <h3>الفصول المتاحة</h3>
-                    <ul id="chapters-list"></ul>
-                </div>
-            </div>
-        </section>
-
-        <section id="reader-view" class="hidden-section">
-            <div class="reader-header">
-                <button onclick="showSection('manga-details-view')" class="back-btn">إغلاق القارئ</button>
-                <span id="reader-chapter-title"></span>
-            </div>
-            <div id="pdf-viewer-container"></div>
-        </section>
-    </main>
-
-    <script src="script.js"></script>
+    <script src="/script.js"></script>
 </body>
 </html>

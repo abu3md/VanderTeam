@@ -1,249 +1,160 @@
 const supabaseUrl = 'https://vmfqrsocsdtntealjyvh.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZnFyc29jc2R0bnRlYWxqeXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNzE2MzgsImV4cCI6MjA4MTY0NzYzOH0.Nc2MMDpqqrJwMsqH_pLjBQf6tXqLtNmwGA8LmPcqU34'; 
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZnFyc29jc2R0bnRlYWxqeXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNzE2MzgsImV4cCI6MjA4MTY0NzYzOH0.Nc2MMDpqqrJwMsqH_pLjBQf6tXqLtNmwGA8LmPcqU34';
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
-let mangas = [];
+// --- Router Engine ---
+const navigateTo = url => {
+    history.pushState(null, null, url);
+    router();
+};
 
-async function loadData() {
-    toggleLoader(true);
-    const { data, error } = await _supabase.from('mangas').select('*').order('lastUpdated', { ascending: false });
-    if (!error) {
-        mangas = data;
-        renderHome();
-        updateAdminSelects();
+const router = async () => {
+    const path = window.location.pathname;
+    const app = document.getElementById('app');
+    app.innerHTML = '<div class="spinner"></div>';
+
+    // Route: /
+    if (path === "/" || path === "/index.html") {
+        renderHomePage(app);
+    } 
+    // Route: /admin
+    else if (path === "/admin") {
+        renderAdminPage(app);
+    } 
+    // Route: /manga/NAME/CHAPTER
+    else if (path.startsWith("/manga/")) {
+        const parts = path.split("/");
+        const mangaTitle = decodeURIComponent(parts[2]);
+        const chapterTitle = parts[3] ? decodeURIComponent(parts[3]) : null;
+
+        if (chapterTitle) {
+            renderReaderPage(app, mangaTitle, chapterTitle);
+        } else {
+            renderDetailsPage(app, mangaTitle);
+        }
     }
-    toggleLoader(false);
-}
+};
 
-function renderHome() {
-    const grid = document.getElementById('manga-grid');
-    grid.innerHTML = mangas.map(m => `
-        <div class="manga-card" onclick="openManga('${m.title}')">
-            <img src="${m.cover}" class="card-image" onerror="this.src='mainL.png'">
-            <div class="manga-title-overlay">${m.title}</div>
+window.addEventListener("popstate", router);
+
+document.addEventListener("click", e => {
+    if (e.target.matches("[data-link]")) {
+        e.preventDefault();
+        navigateTo(e.target.href);
+    }
+});
+
+// --- Page Renderers ---
+
+async function renderHomePage(container) {
+    const { data } = await _supabase.from('mangas').select('*').order('lastUpdated', { ascending: false });
+    container.innerHTML = `
+        <h2 style="margin-bottom:20px;">آخر التحديثات</h2>
+        <div class="grid-container">
+            ${data.map(m => `
+                <a href="/manga/${encodeURIComponent(m.title)}" class="manga-card" data-link>
+                    <img src="${m.cover}" class="card-image" onerror="this.src='/mainL.png'">
+                    <div class="manga-title-overlay">${m.title}</div>
+                </a>
+            `).join('')}
         </div>
-    `).join('');
+    `;
 }
 
-// إضافة مانجا جديدة مع التفاصيل
-async function addNewManga() {
-    const title = document.getElementById('manga-title').value;
-    const file = document.getElementById('manga-cover').files[0];
-    if (!title || !file) return alert("الاسم والغلاف مطلوبان");
+async function renderDetailsPage(container, title) {
+    const { data } = await _supabase.from('mangas').select('*').eq('title', title).single();
+    if (!data) return container.innerHTML = "<h1>المانجا غير موجودة</h1>";
 
-    toggleLoader(true);
-    try {
-        const fileName = `covers/${Date.now()}.png`;
-        await _supabase.storage.from('vander-files').upload(fileName, file);
-        const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(fileName);
-
-        const newManga = {
-            title,
-            desc: document.getElementById('manga-desc').value,
-            author: document.getElementById('manga-author').value,
-            artist: document.getElementById('manga-artist').value,
-            releaseDate: document.getElementById('manga-date').value,
-            genres: document.getElementById('manga-genres').value,
-            publisher: document.getElementById('manga-publisher').value,
-            cover: urlData.publicUrl,
-            chapters: [],
-            lastUpdated: new Date()
-        };
-
-        const { error } = await _supabase.from('mangas').insert([newManga]);
-        if (error) throw error;
-        alert("تم الحفظ بنجاح");
-        loadData();
-    } catch (e) { alert(e.message); }
-    toggleLoader(false);
+    const date = new Date(data.lastUpdated).toLocaleDateString('ar-EG');
+    
+    container.innerHTML = `
+        <div class="manga-layout">
+            <div class="manga-info-card">
+                <img src="${data.cover}">
+                <h1>${data.title}</h1>
+                <div class="manga-meta">
+                    <p><strong>تاريخ التحديث:</strong> ${date}</p>
+                    <p><strong>الكاتب:</strong> ${data.author || 'غير معروف'}</p>
+                    <p><strong>الرسام:</strong> ${data.artist || 'غير معروف'}</p>
+                    <p><strong>التصنيفات:</strong> ${data.genres || '-'}</p>
+                    <p><strong>الناشر:</strong> ${data.publisher || '-'}</p>
+                </div>
+                <p>${data.desc || ''}</p>
+            </div>
+            <div class="chapters-list">
+                <h3>قائمة الفصول</h3>
+                ${(data.chapters || []).map(ch => `
+                    <a href="/manga/${encodeURIComponent(data.title)}/${encodeURIComponent(ch.title)}" data-link>
+                        <span>${ch.title}</span>
+                        <span>اقرأ الآن ←</span>
+                    </a>
+                `).join('')}
+            </div>
+        </div>
+    `;
 }
 
-// تحميل بيانات التعديل
-function loadMangaToEdit() {
-    const title = document.getElementById('manga-select-manage').value;
-    const m = mangas.find(x => x.title === title);
-    if (!m) return;
-
-    document.getElementById('edit-box').classList.remove('hidden-section');
-    document.getElementById('edit-manga-title').value = m.title;
-    document.getElementById('edit-manga-author').value = m.author || '';
-    document.getElementById('edit-manga-artist').value = m.artist || '';
-    document.getElementById('edit-manga-date').value = m.releaseDate || '';
-    document.getElementById('edit-manga-genres').value = m.genres || '';
-    document.getElementById('edit-manga-publisher').value = m.publisher || '';
-    document.getElementById('edit-manga-desc').value = m.desc || '';
-
-    renderAdminChapters(m);
+async function renderReaderPage(container, mangaTitle, chapterTitle) {
+    const { data } = await _supabase.from('mangas').select('chapters').eq('title', mangaTitle).single();
+    const chapter = data.chapters.find(c => c.title === chapterTitle);
+    
+    container.innerHTML = `
+        <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+            <a href="/manga/${encodeURIComponent(mangaTitle)}" class="action-btn" style="width:auto; text-decoration:none;" data-link>← العودة للمانجا</a>
+            <h2>${mangaTitle} - ${chapterTitle}</h2>
+        </div>
+        <iframe src="${chapter.url}" id="pdf-viewer"></iframe>
+    `;
 }
 
-// تحديث المانجا (بما في ذلك الغلاف)
-async function updateManga() {
-    const oldTitle = document.getElementById('manga-select-manage').value;
-    const m = mangas.find(x => x.title === oldTitle);
-    const newCoverFile = document.getElementById('edit-manga-cover').files[0];
-
-    toggleLoader(true);
-    let coverUrl = m.cover;
-
-    if (newCoverFile) {
-        const fileName = `covers/${Date.now()}.png`;
-        await _supabase.storage.from('vander-files').upload(fileName, newCoverFile);
-        coverUrl = _supabase.storage.from('vander-files').getPublicUrl(fileName).data.publicUrl;
+async function renderAdminPage(container) {
+    if (!sessionStorage.getItem('isAdmin')) {
+        container.innerHTML = `
+            <div style="max-width:400px; margin:auto; text-align:center;">
+                <h2>دخول الأدمن</h2>
+                <input type="password" id="admin-pass" placeholder="كلمة المرور">
+                <button onclick="checkAdminPass()" class="action-btn">دخول</button>
+            </div>
+        `;
+        return;
     }
 
-    const updates = {
-        title: document.getElementById('edit-manga-title').value,
-        author: document.getElementById('edit-manga-author').value,
-        artist: document.getElementById('edit-manga-artist').value,
-        releaseDate: document.getElementById('edit-manga-date').value,
-        genres: document.getElementById('edit-manga-genres').value,
-        publisher: document.getElementById('edit-manga-publisher').value,
-        desc: document.getElementById('edit-manga-desc').value,
-        cover: coverUrl,
-        lastUpdated: new Date()
-    };
-
-    const { error } = await _supabase.from('mangas').update(updates).eq('title', oldTitle);
-    if (!error) { alert("تم التحديث"); loadData(); }
-    toggleLoader(false);
+    // هنا يتم بناء لوحة التحكم (نفس الأكواد السابقة ولكن داخل دالة)
+    container.innerHTML = `<h1>لوحة التحكم</h1><p>جاري تحميل الإعدادات...</p>`;
+    // استدعي وظائف الإدارة هنا...
+    buildAdminUI(container);
 }
 
-// إدارة الفصول (إضافة)
-async function addChapter() {
-    const title = document.getElementById('manga-select-manage').value;
-    const chTitle = document.getElementById('new-chapter-title').value;
-    const file = document.getElementById('new-chapter-file').files[0];
+// تشغيل الـ Router عند تحميل الصفحة
+window.onload = router;
 
-    if (!chTitle || !file) return alert("أكمل بيانات الفصل");
-
-    toggleLoader(true);
-    const fileName = `chapters/${Date.now()}.pdf`;
-    await _supabase.storage.from('vander-files').upload(fileName, file);
-    const url = _supabase.storage.from('vander-files').getPublicUrl(fileName).data.publicUrl;
-
-    const m = mangas.find(x => x.title === title);
-    const newChapters = [...(m.chapters || []), { title: chTitle, url, id: Date.now() }];
-
-    await _supabase.from('mangas').update({ chapters: newChapters, lastUpdated: new Date() }).eq('title', title);
-    alert("تمت إضافة الفصل");
-    loadData();
-    toggleLoader(false);
-}
-
-// حذف فصل
-async function deleteChapter(chId) {
-    if (!confirm("هل تريد حذف هذا الفصل؟")) return;
-    const title = document.getElementById('manga-select-manage').value;
-    const m = mangas.find(x => x.title === title);
-    const newChapters = m.chapters.filter(c => c.id !== chId);
-
-    await _supabase.from('mangas').update({ chapters: newChapters }).eq('title', title);
-    loadData();
-}
-
-// تبديل ملف فصل
-async function replaceChapterFile(chId) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'application/pdf';
-    input.onchange = async () => {
-        toggleLoader(true);
-        const file = input.files[0];
-        const fileName = `chapters/${Date.now()}.pdf`;
-        await _supabase.storage.from('vander-files').upload(fileName, file);
-        const url = _supabase.storage.from('vander-files').getPublicUrl(fileName).data.publicUrl;
-
-        const title = document.getElementById('manga-select-manage').value;
-        const m = mangas.find(x => x.title === title);
-        const newChapters = m.chapters.map(c => c.id === chId ? { ...c, url } : c);
-
-        await _supabase.from('mangas').update({ chapters: newChapters }).eq('title', title);
-        loadData();
-        toggleLoader(false);
-    };
-    input.click();
-}
-
-function renderAdminChapters(manga) {
-    const list = document.getElementById('admin-chapters-list');
-    list.innerHTML = (manga.chapters || []).map(c => `
-        <li>
-            <span>${c.title}</span>
-            <div class="admin-list-btns">
-                <button class="mini-btn" style="background:var(--primary)" onclick="replaceChapterFile(${c.id})">تبديل الملف</button>
-                <button class="mini-btn delete-btn" onclick="deleteChapter(${c.id})">حذف</button>
-            </div>
-        </li>
-    `).join('');
-}
-
-// فتح التفاصيل للمستخدم
-function openManga(title) {
-    const m = mangas.find(x => x.title === title);
-    if (!m) return;
-
-    document.getElementById('detail-cover').src = m.cover;
-    document.getElementById('detail-title').innerText = m.title;
-    document.getElementById('detail-author').innerText = m.author || 'غير معروف';
-    document.getElementById('detail-artist').innerText = m.artist || 'غير معروف';
-    document.getElementById('detail-date').innerText = m.releaseDate || '-';
-    document.getElementById('detail-genres').innerText = m.genres || '-';
-    document.getElementById('detail-publisher').innerText = m.publisher || '-';
-    document.getElementById('detail-desc').innerText = m.desc || '';
-    
-    // تاريخ آخر تحديث بتنسيق جميل
-    const date = new Date(m.lastUpdated);
-    document.getElementById('detail-last-update').innerText = date.toLocaleDateString('ar-EG', { year:'numeric', month:'long', day:'numeric' });
-
-    document.getElementById('chapters-list').innerHTML = (m.chapters || []).map(c => `
-        <li onclick="viewPDF('${c.url}', '${c.title}')">
-            <span>${c.title}</span>
-            <span>قراءة ←</span>
-        </li>
-    `).join('');
-
-    showSection('manga-details-view');
-}
-
-// وظائف مساعدة
-function viewPDF(url, title) {
-    document.getElementById('reader-chapter-title').innerText = title;
-    document.getElementById('pdf-viewer-container').innerHTML = `<iframe src="${url}"></iframe>`;
-    showSection('reader-view');
-}
-
-function showSection(id) {
-    document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden-section'));
-    document.getElementById(id).classList.remove('hidden-section');
-}
-
-function showAdminTab(id) {
-    document.getElementById('add-panel').classList.toggle('hidden-section', id !== 'add-panel');
-    document.getElementById('manage-panel').classList.toggle('hidden-section', id !== 'manage-panel');
-    document.getElementById('btn-tab-1').classList.toggle('active-tab', id === 'add-panel');
-    document.getElementById('btn-tab-2').classList.toggle('active-tab', id === 'manage-panel');
-}
-
-function updateAdminSelects() {
-    const options = '<option value="">اختر المانجا لإدارتها</option>' + 
-                    mangas.map(m => `<option value="${m.title}">${m.title}</option>`).join('');
-    document.getElementById('manga-select-manage').innerHTML = options;
-}
-
-function toggleLoader(show) { document.getElementById('loading-overlay').classList.toggle('hidden-section', !show); }
-
-function login() {
-    if (document.getElementById('username').value === 'samer' && document.getElementById('password').value === 'Samer#1212') {
+// وظائف مساعدة للأدمن
+async function checkAdminPass() {
+    const pass = document.getElementById('admin-pass').value;
+    if (pass === "Samer#1212") {
         sessionStorage.setItem('isAdmin', 'true');
-        checkAdminStatus();
-    } else alert("خطأ في البيانات");
+        router();
+    } else alert("خطأ!");
 }
 
-function checkAdminStatus() {
-    if (sessionStorage.getItem('isAdmin')) showSection('admin-dashboard');
-    else showSection('login-view');
+async function buildAdminUI(container) {
+    const { data: mangas } = await _supabase.from('mangas').select('*');
+    container.innerHTML = `
+        <div class="admin-panel">
+            <h3>إضافة مانجا جديدة</h3>
+            <div class="form-grid">
+                <input type="text" id="m-title" placeholder="الاسم">
+                <input type="text" id="m-author" placeholder="الكاتب">
+            </div>
+            <input type="file" id="m-cover" accept="image/*">
+            <button onclick="handleNewManga()" class="action-btn">حفظ</button>
+            <hr style="margin:20px 0;">
+            <h3>إدارة الفصول والبيانات</h3>
+            <select id="m-select" onchange="loadAdminManga(this.value)">
+                <option value="">اختر المانجا</option>
+                ${mangas.map(m => `<option value="${m.title}">${m.title}</option>`).join('')}
+            </select>
+            <div id="admin-edit-area"></div>
+        </div>
+    `;
 }
-
-function logout() { sessionStorage.removeItem('isAdmin'); showSection('home-view'); }
-
-window.onload = loadData;
