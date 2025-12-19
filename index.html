@@ -22,7 +22,7 @@
     <main class="container">
         <div id="loading-overlay" class="hidden-section">
             <div class="spinner"></div>
-            <p>جاري تحميل البيانات...</p>
+            <p>جاري المعالجة...</p>
         </div>
 
         <section id="home-view">
@@ -57,7 +57,6 @@
                     <h3>إضافة مانجا جديدة</h3>
                     <input type="text" id="manga-title" placeholder="اسم المانجا">
                     <textarea id="manga-desc" placeholder="وصف المانجا"></textarea>
-                    <label>غلاف المانجا (PNG):</label>
                     <input type="file" id="manga-cover" accept="image/*">
                     <button onclick="addNewManga()" class="action-btn">حفظ المانجا</button>
                 </div>
@@ -65,21 +64,20 @@
                 <div class="form-group">
                     <h3>إضافة فصل</h3>
                     <select id="manga-select-add"></select>
-                    <input type="text" id="chapter-title" placeholder="رقم أو عنوان الفصل">
-                    <label>ملف الفصل (PDF):</label>
+                    <input type="text" id="chapter-title" placeholder="عنوان الفصل">
                     <input type="file" id="chapter-file" accept="application/pdf">
                     <button onclick="addChapter()" class="action-btn">رفع الفصل</button>
                 </div>
             </div>
 
             <div id="manage-panel" class="admin-content hidden-section">
-                <h3>إدارة المانجا الموجودة</h3>
+                <h3>إدارة المانجا</h3>
                 <select id="manga-select-manage" onchange="loadMangaToEdit()">
-                    <option value="">اختر المانجا للتعديل عليها</option>
+                    <option value="">اختر مانجا لتعديلها أو حذفها</option>
                 </select>
                 
                 <div id="edit-box" class="hidden-section edit-container">
-                    <h4>تعديل بيانات: <span id="editing-now-name"></span></h4>
+                    <h4>التحكم في: <span id="editing-now-name"></span></h4>
                     <input type="text" id="edit-manga-title" placeholder="الاسم الجديد">
                     <textarea id="edit-manga-desc" placeholder="الوصف الجديد"></textarea>
                     <button onclick="updateManga()" class="action-btn">تحديث المعلومات</button>
@@ -97,7 +95,7 @@
                     <p id="detail-desc"></p>
                 </div>
                 <div class="chapters-list-container">
-                    <h3>الفصول</h3>
+                    <h3>الفصول المتاحة</h3>
                     <ul id="chapters-list"></ul>
                 </div>
             </div>

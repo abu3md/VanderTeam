@@ -1,7 +1,7 @@
 :root {
     --primary: #093e58; /* لون الفريق 1 */
-    --accent: #681212;  /* لون الفريق 2 */
-    --q-bg: #26102e;    /* لون القائمة */
+    --accent: #681212;  /* لون الفريق 2 - زر الحذف */
+    --q-bg: #26102e;    /* لون الهيدر والقائمة */
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
@@ -9,7 +9,6 @@
 body {
     background: url('background.png') no-repeat center center fixed;
     background-size: cover;
-    color: #333;
 }
 
 header {
@@ -44,10 +43,10 @@ header button {
 
 .hidden-section { display: none !important; }
 
-/* تنسيق الشبكة */
+/* تصميم الشبكة والكروت */
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
     gap: 25px;
     margin-top: 30px;
 }
@@ -58,34 +57,33 @@ header button {
     overflow: hidden; 
     border: 3px solid var(--primary); 
     background: #fff; 
-    transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.3s;
 }
-.manga-card:hover { transform: translateY(-8px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+.manga-card:hover { transform: translateY(-8px); }
 
-.card-image { width: 100%; height: 280px; object-fit: cover; display: block; }
-.manga-title-overlay { background: var(--primary); color: white; text-align: center; padding: 12px; font-weight: bold; font-size: 15px; }
+.card-image { width: 100%; height: 270px; object-fit: cover; display: block; }
+.manga-title-overlay { background: var(--primary); color: white; text-align: center; padding: 12px; font-weight: bold; }
 
-/* التبويبات وأزرار التحكم */
+/* أدوات الإدارة */
 .admin-tabs { display: flex; gap: 10px; margin-bottom: 25px; }
-.admin-tabs button { flex: 1; padding: 15px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; background: #eee; }
+.admin-tabs button { flex: 1; padding: 12px; cursor: pointer; border: none; border-radius: 8px; font-weight: bold; background: #eee; }
 .active-tab { background: var(--primary) !important; color: white; }
 
 .action-btn { background: var(--primary); color: white; border: none; padding: 14px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
 .delete-btn { background: var(--accent) !important; }
 
-.edit-container { background: #f9f9f9; padding: 20px; border-radius: 10px; border: 1px solid #ddd; margin-top: 20px; }
+.edit-container { background: #fdfdfd; padding: 20px; border-radius: 10px; border: 2px dashed #ccc; margin-top: 20px; }
 
-input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; font-size: 16px; }
+input, textarea, select { width: 100%; padding: 12px; margin-top: 8px; margin-bottom: 15px; border: 1px solid #ccc; border-radius: 8px; }
 
 /* القارئ والتفاصيل */
 .manga-layout { display: flex; gap: 30px; flex-wrap: wrap; }
-.manga-info-card { flex: 1; min-width: 300px; text-align: center; }
+.manga-info-card { flex: 1; min-width: 280px; text-align: center; }
 .manga-info-card img { width: 100%; border-radius: 12px; border: 4px solid var(--primary); }
-.chapters-list-container { flex: 2; min-width: 300px; background: #f0f0f0; padding: 20px; border-radius: 12px; }
+.chapters-list-container { flex: 2; min-width: 300px; background: #f9f9f9; padding: 20px; border-radius: 12px; }
 #chapters-list li { background: white; padding: 15px; margin-bottom: 10px; border-radius: 8px; display: flex; justify-content: space-between; cursor: pointer; border: 1px solid #ddd; }
-#chapters-list li:hover { border-color: var(--primary); }
 
-.back-btn { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 20px; display: inline-block; }
+.back-btn { background: var(--primary); color: white; border: none; padding: 8px 20px; border-radius: 5px; cursor: pointer; margin-bottom: 20px; }
 
 .spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 45px; height: 45px; animation: spin 1s linear infinite; margin: 20px auto; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
