@@ -4,7 +4,7 @@ const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 let mangas = [];
 
-// جلب البيانات الأساسية
+// جلب البيانات
 async function loadData() {
     toggleLoader(true);
     try {
@@ -12,9 +12,9 @@ async function loadData() {
         if (error) throw error;
         mangas = data || [];
         renderHome();
-        updateAdminLists();
+        updateAdminOptions();
     } catch (err) {
-        console.error("خطأ جلب البيانات:", err.message);
+        console.error(err.message);
     }
     toggleLoader(false);
 }
@@ -29,13 +29,84 @@ function renderHome() {
     `).join('');
 }
 
-// إضافة مانجا
+// التحكم في الأقسام
+function showSection(id) {
+    document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden-section'));
+    document.getElementById(id).classList.remove('hidden-section');
+    if (id === 'home-view') loadData();
+}
+
+function showAdminTab(tabId) {
+    // إخفاء جميع محتويات الأدمن أولاً
+    document.getElementById('add-panel').classList.add('hidden-section');
+    document.getElementById('manage-panel').classList.add('hidden-section');
+    
+    // إظهار التبويب المختار
+    document.getElementById(tabId).classList.remove('hidden-section');
+    
+    // تغيير شكل الأزرار
+    document.getElementById('btn-tab-1').classList.toggle('active-tab', tabId === 'add-panel');
+    document.getElementById('btn-tab-2').classList.toggle('active-tab', tabId === 'manage-panel');
+}
+
+// تعديل المانجا (إظهار الخيارات)
+function loadMangaToEdit() {
+    const selectedTitle = document.getElementById('manga-select-manage').value;
+    const editBox = document.getElementById('edit-box');
+    
+    if (!selectedTitle) {
+        editBox.classList.add('hidden-section');
+        return;
+    }
+
+    const manga = mangas.find(m => m.title === selectedTitle);
+    if (manga) {
+        editBox.classList.remove('hidden-section');
+        document.getElementById('editing-now-name').innerText = manga.title;
+        document.getElementById('edit-manga-title').value = manga.title;
+        document.getElementById('edit-manga-desc').value = manga.desc || '';
+    }
+}
+
+// تحديث المانجا
+async function updateManga() {
+    const oldTitle = document.getElementById('manga-select-manage').value;
+    const newTitle = document.getElementById('edit-manga-title').value.trim();
+    const newDesc = document.getElementById('edit-manga-desc').value.trim();
+
+    toggleLoader(true);
+    try {
+        const { error } = await _supabase.from('mangas').update({ title: newTitle, desc: newDesc }).eq('title', oldTitle);
+        if (error) throw error;
+        alert("تم التحديث بنجاح");
+        loadData();
+    } catch (err) { alert(err.message); }
+    toggleLoader(false);
+}
+
+// حذف المانجا
+async function deleteManga() {
+    const title = document.getElementById('manga-select-manage').value;
+    if (!confirm(`هل تريد حذف ${title} نهائياً؟`)) return;
+
+    toggleLoader(true);
+    try {
+        const { error } = await _supabase.from('mangas').delete().eq('title', title);
+        if (error) throw error;
+        alert("تم الحذف");
+        document.getElementById('edit-box').classList.add('hidden-section');
+        loadData();
+    } catch (err) { alert(err.message); }
+    toggleLoader(false);
+}
+
+// إضافة مانجا جديدة
 async function addNewManga() {
     const title = document.getElementById('manga-title').value.trim();
     const desc = document.getElementById('manga-desc').value.trim();
     const file = document.getElementById('manga-cover').files[0];
 
-    if (!title || !file) return alert("أكمل البيانات المطلوبة");
+    if (!title || !file) return alert("أكمل البيانات");
 
     toggleLoader(true);
     try {
@@ -46,15 +117,14 @@ async function addNewManga() {
         const { error } = await _supabase.from('mangas').insert([{
             title, desc, cover: urlData.publicUrl, chapters: [], lastUpdated: new Date()
         }]);
-
         if (error) throw error;
-        alert("تمت الإضافة!");
+        alert("تم الحفظ!");
         loadData();
-    } catch (err) { alert("فشل: " + err.message); }
+    } catch (err) { alert(err.message); }
     toggleLoader(false);
 }
 
-// إضافة فصل (تحديث ملف المانجا)
+// إضافة فصل
 async function addChapter() {
     const mTitle = document.getElementById('manga-select-add').value;
     const cTitle = document.getElementById('chapter-title').value.trim();
@@ -64,59 +134,27 @@ async function addChapter() {
 
     toggleLoader(true);
     try {
-        // 1. رفع ملف الـ PDF
-        const fileName = `chapters/${Date.now()}_chapter.pdf`;
-        const { error: upErr } = await _supabase.storage.from('vander-files').upload(fileName, file);
-        if (upErr) throw upErr;
-
+        const fileName = `chapters/${Date.now()}.pdf`;
+        await _supabase.storage.from('vander-files').upload(fileName, file);
         const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(fileName);
 
-        // 2. تحديث مصفوفة الفصول في الجدول
         const manga = mangas.find(m => m.title === mTitle);
-        const updatedChapters = [...(manga.chapters || []), { title: cTitle, url: urlData.publicUrl }];
+        const newChapters = [...(manga.chapters || []), { title: cTitle, url: urlData.publicUrl }];
 
-        const { error: dbErr } = await _supabase.from('mangas')
-            .update({ chapters: updatedChapters, lastUpdated: new Date() })
-            .eq('title', mTitle);
-
-        if (dbErr) throw dbErr;
-        
-        alert("تم رفع الفصل وتحديث المانجا!");
+        await _supabase.from('mangas').update({ chapters: newChapters, lastUpdated: new Date() }).eq('title', mTitle);
+        alert("تم رفع الفصل!");
         loadData();
-    } catch (err) { alert("خطأ: " + err.message); }
+    } catch (err) { alert(err.message); }
     toggleLoader(false);
 }
 
-// تعديل وحذف
-async function updateManga() {
-    const oldTitle = document.getElementById('manga-select-manage').value;
-    const newTitle = document.getElementById('edit-manga-title').value;
-    const newDesc = document.getElementById('edit-manga-desc').value;
-
-    toggleLoader(true);
-    const { error } = await _supabase.from('mangas').update({ title: newTitle, desc: newDesc }).eq('title', oldTitle);
-    if (error) alert(error.message);
-    else { alert("تم التحديث"); loadData(); }
-    toggleLoader(false);
-}
-
-async function deleteManga() {
-    const title = document.getElementById('manga-select-manage').value;
-    if (!confirm("حذف نهائي؟")) return;
-    toggleLoader(true);
-    const { error } = await _supabase.from('mangas').delete().eq('title', title);
-    if (error) alert(error.message);
-    else { alert("تم الحذف"); loadData(); }
-    toggleLoader(false);
-}
-
-// وظائف الواجهة
+// عرض التفاصيل
 function openManga(title) {
     const m = mangas.find(x => x.title === title);
     if (!m) return;
     document.getElementById('detail-cover').src = m.cover;
     document.getElementById('detail-title').innerText = m.title;
-    document.getElementById('detail-desc').innerText = m.desc || 'لا يوجد وصف.';
+    document.getElementById('detail-desc').innerText = m.desc || '';
     document.getElementById('chapters-list').innerHTML = (m.chapters || []).map(c => 
         `<li onclick="viewPDF('${c.url}', '${c.title}')"><span>${c.title}</span> <b>قراءة ←</b></li>`).join('');
     showSection('manga-details-view');
@@ -128,35 +166,24 @@ function viewPDF(url, title) {
     showSection('reader-view');
 }
 
-function showSection(id) {
-    document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden-section'));
-    document.getElementById(id).classList.remove('hidden-section');
-}
-
+// المساعدات
 function toggleLoader(show) { document.getElementById('loading-overlay').classList.toggle('hidden-section', !show); }
 
-function updateAdminLists() {
-    const options = '<option value="">اختر المانجا</option>' + mangas.map(m => `<option value="${m.title}">${m.title}</option>`).join('');
-    document.getElementById('manga-select-add').innerHTML = options;
-    document.getElementById('manga-select-manage').innerHTML = options;
-}
-
-function showAdminTab(id) {
-    document.getElementById('add-panel').classList.toggle('hidden-tab', id !== 'add-panel');
-    document.getElementById('manage-panel').classList.toggle('hidden-tab', id !== 'manage-panel');
-    document.getElementById('btn-tab-1').classList.toggle('active-tab', id === 'add-panel');
-    document.getElementById('btn-tab-2').classList.toggle('active-tab', id === 'manage-panel');
+function updateAdminOptions() {
+    const opts = '<option value="">اختر المانجا</option>' + mangas.map(m => `<option value="${m.title}">${m.title}</option>`).join('');
+    document.getElementById('manga-select-add').innerHTML = opts;
+    document.getElementById('manga-select-manage').innerHTML = opts;
 }
 
 function login() {
     if (document.getElementById('username').value === 'samer' && document.getElementById('password').value === 'Samer#1212') {
         sessionStorage.setItem('isAdmin', 'true');
         checkAdminStatus();
-    } else alert("بيانات خاطئة");
+    } else alert("خطأ");
 }
 
 function checkAdminStatus() {
-    if (sessionStorage.getItem('isAdmin')) { showSection('admin-dashboard'); updateAdminLists(); }
+    if (sessionStorage.getItem('isAdmin')) { showSection('admin-dashboard'); showAdminTab('add-panel'); }
     else showSection('login-view');
 }
 
