@@ -66,7 +66,7 @@ function renderDetails(container, title) {
                 <p style="line-height:1.8;">${m.desc || ''}</p>
             </div>
             <div class="island chapters-island">
-                <h3 style="margin-bottom:15px; text-align:center;">قائمة الفصول</h3>
+                <h3 style="margin-bottom:15px; text-align:center;">الفصول</h3>
                 ${(m.chapters || []).map(ch => `<div class="ch-item" onclick="navigateTo('/manga/${encodeURIComponent(m.title)}/${encodeURIComponent(ch.title)}')">${ch.title}</div>`).join('')}
             </div>
         </div>`;
@@ -114,12 +114,71 @@ function showForm(type) {
     } else {
         area.innerHTML = `<div class="island">
             <select id="s-m" onchange="setupEdit(this.value)">
-                <option>اختر المانجا للتعديل عليها</option>
-                ${mangas.map(m=>`<option>${m.title}</option>`).join('')}
+                <option value="">اختر المانجا للتعديل عليها</option>
+                ${mangas.map(m=>`<option value="${m.title}">${m.title}</option>`).join('')}
             </select>
             <div id="e-fields"></div>
         </div>`;
     }
+}
+
+// دالة إصلاح التعديل
+function setupEdit(title) {
+    if(!title) return;
+    const m = mangas.find(x => x.title === title);
+    const area = document.getElementById('e-fields');
+    area.innerHTML = `
+        <div style="margin-top:20px;">
+            <div class="admin-form-grid">
+                <input id="ed-t" value="${m.title}" placeholder="العنوان">
+                <input id="ed-a" value="${m.author || ''}" placeholder="الكاتب">
+                <input id="ed-r" value="${m.artist || ''}" placeholder="الرسام">
+                <input id="ed-g" value="${m.genres || ''}" placeholder="التصنيفات">
+                <input id="ed-pub" value="${m.publisher || ''}" placeholder="الناشر">
+                <input id="ed-date" value="${m.releaseDate || ''}" placeholder="تاريخ الصدور">
+            </div>
+            <textarea id="ed-d" style="height:100px;">${m.desc || ''}</textarea>
+            <button class="action-btn" onclick="saveEdit('${m.title}')">تحديث البيانات</button>
+            <hr style="margin:20px 0;">
+            <h4>إضافة فصل جديد</h4>
+            <div style="display:flex; gap:10px;">
+                <input id="ch-title" placeholder="رقم/عنوان الفصل" style="flex:1;">
+                <input type="file" id="ch-file" style="flex:1;">
+                <button class="action-btn" style="width:auto; margin:0;" onclick="uploadChapter('${m.title}')">رفع الفصل</button>
+            </div>
+        </div>`;
+}
+
+async function saveEdit(oldTitle) {
+    const { error } = await _supabase.from('mangas').update({
+        title: document.getElementById('ed-t').value,
+        author: document.getElementById('ed-a').value,
+        artist: document.getElementById('ed-r').value,
+        genres: document.getElementById('ed-g').value,
+        publisher: document.getElementById('ed-pub').value,
+        releaseDate: document.getElementById('ed-date').value,
+        desc: document.getElementById('ed-d').value,
+        lastUpdated: new Date()
+    }).eq('title', oldTitle);
+
+    if(!error) { alert("تم التحديث!"); router(); }
+}
+
+async function uploadChapter(mTitle) {
+    const title = document.getElementById('ch-title').value;
+    const file = document.getElementById('ch-file').files[0];
+    if(!title || !file) return alert("اختر ملفاً واكتب عنواناً");
+
+    const path = `chapters/${Date.now()}_${file.name}`;
+    await _supabase.storage.from('vander-files').upload(path, file);
+    const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(path);
+
+    const m = mangas.find(x => x.title === mTitle);
+    const chapters = [...(m.chapters || []), { title, url: urlData.publicUrl }];
+    
+    await _supabase.from('mangas').update({ chapters, lastUpdated: new Date() }).eq('title', mTitle);
+    alert("تم رفع الفصل!");
+    router();
 }
 
 async function saveNew() {
@@ -128,30 +187,26 @@ async function saveNew() {
     if(!title || !file) return alert("العنوان والغلاف مطلوبان");
 
     const path = `covers/${Date.now()}_${file.name}`;
-    const { data: uploadData } = await _supabase.storage.from('vander-files').upload(path, file);
+    await _supabase.storage.from('vander-files').upload(path, file);
     const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(path);
 
-    const { error } = await _supabase.from('mangas').insert([{
-        title: title,
-        cover: urlData.publicUrl,
+    await _supabase.from('mangas').insert([{
+        title, cover: urlData.publicUrl,
         author: document.getElementById('in-a').value,
         artist: document.getElementById('in-r').value,
         genres: document.getElementById('in-g').value,
         publisher: document.getElementById('in-pub').value,
         releaseDate: document.getElementById('in-date').value,
         desc: document.getElementById('in-d').value,
-        chapters: [],
-        lastUpdated: new Date()
+        chapters: [], lastUpdated: new Date()
     }]);
-
-    if(!error) { alert("تم الحفظ بنجاح!"); router(); }
-    else alert("حدث خطأ أثناء الحفظ");
+    router();
 }
 
 function login() {
     if(document.getElementById('u').value === "samer" && document.getElementById('p').value === "Samer#1212") {
         sessionStorage.setItem('isAdmin','t'); router();
-    } else alert("بيانات خاطئة");
+    }
 }
 function logout() { sessionStorage.removeItem('isAdmin'); router(); }
 
