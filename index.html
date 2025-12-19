@@ -25,12 +25,13 @@
             <p id="loading-text">انتظر قليلاً...</p>
         </div>
 
-        <section id="home-view" class="active-section">
+        <section id="home-view">
             <div class="search-bar">
                 <input type="text" id="search-input" placeholder="بحث عن مانجا..." onkeyup="filterManga()">
             </div>
             <h2 class="section-title">آخر التحديثات</h2>
-            <div id="manga-grid" class="grid-container"></div>
+            <div id="manga-grid" class="grid-container">
+                </div>
         </section>
 
         <section id="login-view" class="hidden-section">
@@ -38,7 +39,7 @@
                 <h2>دخول المشرفين</h2>
                 <input type="text" id="username" placeholder="اسم المستخدم">
                 <input type="password" id="password" placeholder="كلمة المرور">
-                <button onclick="login()">دخول</button>
+                <button onclick="login()" class="action-btn">دخول</button>
             </div>
         </section>
 
@@ -69,26 +70,25 @@
             <div id="manage-panel" class="admin-content hidden-tab">
                 <h3>تعديل البيانات</h3>
                 <select id="manga-select-manage" onchange="loadMangaToEdit()"></select>
-                <div id="edit-box" class="hidden-section">
-                    <input type="text" id="edit-manga-title">
-                    <textarea id="edit-manga-desc"></textarea>
-                    <button onclick="updateManga()" class="action-btn">تحديث</button>
-                    <button onclick="deleteManga()" class="action-btn delete-btn">حذف</button>
-                    <ul id="edit-chapters-list"></ul>
+                <div id="edit-box" class="hidden-section" style="margin-top:20px; border-top:1px solid #ddd; padding-top:20px;">
+                    <input type="text" id="edit-manga-title" placeholder="الاسم الجديد">
+                    <textarea id="edit-manga-desc" placeholder="الوصف الجديد"></textarea>
+                    <button onclick="updateManga()" class="action-btn">تحديث البيانات</button>
+                    <button onclick="deleteManga()" class="action-btn" style="background:#681212;">حذف المانجا نهائياً</button>
                 </div>
             </div>
         </section>
 
         <section id="manga-details-view" class="hidden-section">
-            <button onclick="showSection('home-view')" class="back-btn">← عودة</button>
+            <button onclick="showSection('home-view')" class="action-btn" style="width:auto; margin-bottom:15px;">← عودة</button>
             <div class="manga-layout">
                 <div class="manga-info-card">
-                    <img id="detail-cover" src="">
+                    <img id="detail-cover" src="" style="max-width:300px;">
                     <h1 id="detail-title"></h1>
                     <p id="detail-desc"></p>
                 </div>
                 <div class="chapters-list-container">
-                    <h3>الفصول</h3>
+                    <h3>الفصول المتاحة</h3>
                     <ul id="chapters-list"></ul>
                 </div>
             </div>
@@ -96,10 +96,10 @@
 
         <section id="reader-view" class="hidden-section">
             <div class="reader-header">
-                <button onclick="backToManga()" class="back-btn">إغلاق</button>
-                <span id="reader-chapter-title"></span>
+                <button onclick="showSection('manga-details-view')" class="action-btn" style="width:auto;">إغلاق القارئ</button>
+                <span id="reader-chapter-title" style="margin-right:20px; font-weight:bold;"></span>
             </div>
-            <div id="pdf-viewer-container"></div>
+            <div id="pdf-viewer-container" style="margin-top:20px;"></div>
         </section>
     </main>
 
