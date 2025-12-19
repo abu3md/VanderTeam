@@ -7,14 +7,12 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
 
 body {
-    /* تم تغيير الصيغة لـ png */
     background: url('background.png') no-repeat center center fixed;
     background-size: cover;
     color: #333;
 }
 
 header {
-    /* تم تغيير الصيغة لـ png */
     background: url('header.png') no-repeat center center;
     background-size: cover;
     height: 150px;
@@ -41,14 +39,13 @@ header button {
     padding: 20px;
     min-height: 80vh;
     border-radius: 12px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
 }
 
-.hidden-section, .hidden-tab { display: none !important; }
+.hidden-section { display: none !important; }
 
 .grid-container {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(170px, 1fr));
     gap: 20px;
 }
 
@@ -57,13 +54,8 @@ header button {
 .manga-title-overlay { background: var(--primary); color: white; text-align: center; padding: 8px; font-weight: bold; }
 
 .admin-content { margin-top: 20px; display: flex; flex-direction: column; gap: 10px; }
-input, textarea, select { padding: 12px; border: 1px solid #ccc; border-radius: 8px; width: 100%; }
+input, textarea, select { padding: 12px; border: 1px solid #ccc; border-radius: 8px; width: 100%; font-size: 16px; }
 .action-btn { background: var(--primary); color: white; border: none; padding: 12px; cursor: pointer; border-radius: 8px; font-weight: bold; }
-.delete-btn { background: var(--accent); }
-
-.admin-tabs { display: flex; gap: 10px; margin-bottom: 10px; }
-.admin-tabs button { flex: 1; padding: 10px; border: none; cursor: pointer; border-radius: 8px; background: #eee; font-weight: bold; }
-.admin-tabs button.active-tab { background: var(--primary); color: white; }
 
 #pdf-viewer-container { width: 100%; height: 80vh; background: #333; border-radius: 8px; }
 iframe { width: 100%; height: 100%; border: none; }
@@ -78,7 +70,7 @@ iframe { width: 100%; height: 100%; border: none; }
 @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
 .manga-layout { display: flex; gap: 20px; flex-wrap: wrap; }
-.manga-info-card { flex: 1; min-width: 250px; }
+.manga-info-card { flex: 1; min-width: 280px; }
 .manga-info-card img { width: 100%; border-radius: 8px; border: 3px solid var(--primary); }
 .chapters-list-container { flex: 2; min-width: 300px; background: #f4f4f4; padding: 20px; border-radius: 8px; }
 #chapters-list li { background: white; padding: 12px; margin-bottom: 8px; border: 1px solid #ddd; border-radius: 5px; cursor: pointer; list-style: none; display: flex; justify-content: space-between; }
