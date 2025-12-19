@@ -17,7 +17,7 @@ async function loadData() {
         mangas = data || [];
         renderHome();
     } catch (err) {
-        console.error("خطأ:", err.message);
+        console.error("خطأ جلب البيانات:", err.message);
     }
     toggleLoader(false);
 }
@@ -35,13 +35,14 @@ function renderHome() {
     grid.innerHTML = '';
     mangas.forEach(m => {
         grid.innerHTML += `
-            <div class="manga-card" onclick="openManga('${m.id}')">
+            <div class="manga-card" onclick="openManga('${m.title}')">
                 <img src="${m.cover}" class="card-image" onerror="this.src='mainL.png'">
                 <div class="manga-title-overlay">${m.title}</div>
             </div>`;
     });
 }
 
+// الإضافة (لاحظ أننا لا نرسل ID لأن title هو المفتاح في جدولك)
 async function addNewManga() {
     const title = document.getElementById('manga-title').value;
     const desc = document.getElementById('manga-desc').value;
@@ -51,14 +52,18 @@ async function addNewManga() {
     
     toggleLoader(true);
     try {
-        const fileName = `covers/${Date.now()}_${file.name}`;
+        const fileName = `covers/${Date.now()}_${file.name.replace(/\s/g, '_')}`;
         const { error: upError } = await _supabase.storage.from('vander-files').upload(fileName, file);
         if (upError) throw upError;
 
         const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(fileName);
 
         const { error: dbError } = await _supabase.from('mangas').insert([{
-            title: title, desc: desc, cover: urlData.publicUrl, chapters: [], lastUpdated: new Date()
+            title: title,
+            desc: desc,
+            cover: urlData.publicUrl,
+            chapters: [],
+            lastUpdated: new Date()
         }]);
 
         if (dbError) throw dbError;
@@ -66,27 +71,32 @@ async function addNewManga() {
         alert("تم الحفظ بنجاح!");
         loadData();
     } catch (err) {
-        alert("فشل الحفظ: " + err.message);
+        alert("فشل الحفظ: " + err.message + "\nتنبيه: لا تكرر اسم المانجا مرتين لأن الاسم هو المفتاح الأساسي.");
     }
     toggleLoader(false);
 }
 
 async function addChapter() {
-    const mId = document.getElementById('manga-select-add').value;
-    const title = document.getElementById('chapter-title').value;
+    const mTitle = document.getElementById('manga-select-add').value;
+    const chapName = document.getElementById('chapter-title').value;
     const file = document.getElementById('chapter-file').files[0];
 
-    if (!mId || !file) return alert("بيانات ناقصة");
+    if (!mTitle || !file) return alert("بيانات ناقصة");
     
     toggleLoader(true);
     try {
         const fileName = `chapters/${Date.now()}.pdf`;
         await _supabase.storage.from('vander-files').upload(fileName, file);
         const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(fileName);
-        const m = mangas.find(x => x.id == mId);
-        const newChapters = [...(m.chapters || []), { id: Date.now(), title, url: urlData.publicUrl }];
+        
+        const m = mangas.find(x => x.title === mTitle);
+        const newChapters = [...(m.chapters || []), { id: Date.now(), title: chapName, url: urlData.publicUrl }];
 
-        await _supabase.from('mangas').update({ chapters: newChapters, lastUpdated: new Date() }).eq('id', mId);
+        const { error: updateErr } = await _supabase.from('mangas')
+            .update({ chapters: newChapters, lastUpdated: new Date() })
+            .eq('title', mTitle); // البحث بعنوان المانجا
+
+        if (updateErr) throw updateErr;
         alert("تم رفع الفصل!");
         loadData();
     } catch (err) {
@@ -95,8 +105,8 @@ async function addChapter() {
     toggleLoader(false);
 }
 
-function openManga(id) {
-    const m = mangas.find(x => x.id == id);
+function openManga(title) {
+    const m = mangas.find(x => x.title === title);
     if(!m) return;
     document.getElementById('detail-cover').src = m.cover;
     document.getElementById('detail-title').innerText = m.title;
@@ -123,8 +133,8 @@ function login() {
 function checkAdminStatus() {
     if (sessionStorage.getItem('isAdmin')) {
         showSection('admin-dashboard');
-        const opts = mangas.map(m => `<option value="${m.id}">${m.title}</option>`).join('');
-        document.getElementById('manga-select-add').innerHTML = '<option value="">اختر</option>' + opts;
+        const opts = mangas.map(m => `<option value="${m.title}">${m.title}</option>`).join('');
+        document.getElementById('manga-select-add').innerHTML = '<option value="">اختر المانجا</option>' + opts;
     } else showSection('login-view');
 }
 
