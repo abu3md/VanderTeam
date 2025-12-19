@@ -33,7 +33,7 @@ document.addEventListener("click", e => {
 function renderHome() {
     return `<div class="grid-container">${mangas.map(m => `
         <a href="/manga/${encodeURIComponent(m.title)}" class="manga-card" data-link style="text-decoration:none;">
-            <div class="card-img-box" style="width:100%; aspect-ratio:1/1; border-radius:20px; overflow:hidden; box-shadow:0 10px 20px rgba(0,0,0,0.4);">
+            <div class="island" style="padding:0; overflow:hidden; aspect-ratio:1/1;">
                 <img src="${m.cover}" style="width:100%; height:100%; object-fit:cover;">
             </div>
             <div style="margin-top:10px; text-align:center;">
@@ -55,15 +55,16 @@ function renderDetails(container, title) {
             </div>
             <div class="island info-island">
                 <h1>${m.title}</h1>
-                <div class="data-item"><span>تاريخ التحديث:</span> <span>${new Date(m.lastUpdated).toLocaleDateString('ar-EG')}</span></div>
-                <div class="data-item"><span>الكاتب:</span> <span>${m.author || '-'}</span></div>
-                <div class="data-item"><span>الرسام:</span> <span>${m.artist || '-'}</span></div>
-                <div class="data-item"><span>التصنيفات:</span> <span>${m.genres || '-'}</span></div>
+                <div class="data-row"><span>تاريخ التحديث:</span> <span>${new Date(m.lastUpdated).toLocaleDateString('ar-EG')}</span></div>
+                <div class="data-row"><span>الكاتب:</span> <span>${m.author || '-'}</span></div>
+                <div class="data-row"><span>الرسام:</span> <span>${m.artist || '-'}</span></div>
+                <div class="data-row"><span>التصنيفات:</span> <span>${m.genres || '-'}</span></div>
+                <div class="data-row"><span>الناشر:</span> <span>${m.publisher || '-'}</span></div>
                 <hr style="margin:20px 0;">
                 <p style="line-height:1.8;">${m.desc || ''}</p>
             </div>
             <div class="island chapters-island">
-                <h3 style="margin-bottom:15px; text-align:center;">الفصول</h3>
+                <h3 style="margin-bottom:15px; text-align:center;">قائمة الفصول</h3>
                 ${(m.chapters || []).map(ch => `<div class="ch-item" onclick="navigateTo('/manga/${encodeURIComponent(m.title)}/${encodeURIComponent(ch.title)}')">${ch.title}</div>`).join('')}
             </div>
         </div>`;
@@ -72,6 +73,7 @@ function renderDetails(container, title) {
 function renderAdmin(container) {
     if (!sessionStorage.getItem('isAdmin')) {
         container.innerHTML = `<div class="island" style="max-width:400px; margin:100px auto;">
+            <h2 style="text-align:center; margin-bottom:15px;">دخول المشرفين</h2>
             <input type="text" id="u" placeholder="اسم المستخدم">
             <input type="password" id="p" placeholder="كلمة المرور">
             <button class="action-btn" onclick="login()">دخول</button>
@@ -79,10 +81,10 @@ function renderAdmin(container) {
         return;
     }
     container.innerHTML = `
-        <div class="admin-container">
+        <div style="max-width:1200px; margin:auto; padding:20px;">
             <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <button class="action-btn" onclick="showForm('add')">إضافة مانجا</button>
-                <button class="action-btn" onclick="showForm('edit')">إدارة وتعديل</button>
+                <button class="action-btn" onclick="showForm('add')">نشر مانجا جديدة</button>
+                <button class="action-btn" onclick="showForm('edit')">إدارة المانجا والفصول</button>
                 <button class="action-btn" style="background:var(--accent)" onclick="logout()">خروج</button>
             </div>
             <div id="form-area"></div>
@@ -93,19 +95,21 @@ function showForm(type) {
     const area = document.getElementById('form-area');
     if(type === 'add') {
         area.innerHTML = `<div class="island">
-            <h3>إضافة مانجا</h3>
-            <input id="in-t" placeholder="العنوان">
-            <input id="in-a" placeholder="الكاتب">
-            <input id="in-r" placeholder="الرسام">
+            <h3>بيانات المانجا الجديدة</h3>
+            <input id="in-t" placeholder="عنوان المانجا">
+            <input id="in-a" placeholder="اسم الكاتب">
+            <input id="in-r" placeholder="اسم الرسام">
             <input id="in-g" placeholder="التصنيفات">
-            <textarea id="in-d" placeholder="الوصف"></textarea>
+            <input id="in-pub" placeholder="الناشر">
+            <textarea id="in-d" placeholder="وصف القصة" style="height:120px;"></textarea>
+            <label>اختر صورة الغلاف:</label>
             <input type="file" id="in-c">
-            <button class="action-btn" onclick="saveNew()">نشر</button>
+            <button class="action-btn" onclick="saveNew()">نشر المانجا الآن</button>
         </div>`;
     } else {
         area.innerHTML = `<div class="island">
             <select id="s-m" onchange="loadEdit(this.value)">
-                <option>اختر المانجا</option>
+                <option>اختر المانجا للتعديل</option>
                 ${mangas.map(m=>`<option>${m.title}</option>`).join('')}
             </select>
             <div id="e-fields"></div>
@@ -113,12 +117,37 @@ function showForm(type) {
     }
 }
 
-// ... بقية دوال الـ API (saveNew, loadEdit, addChapter) تعمل الآن بكفاءة ...
+async function saveNew() {
+    const title = document.getElementById('in-t').value;
+    const file = document.getElementById('in-c').files[0];
+    if(!title || !file) return alert("العنوان والغلاف مطلوبان");
+
+    const path = `covers/${Date.now()}_${file.name}`;
+    const { data: uploadData, error: uploadError } = await _supabase.storage.from('vander-files').upload(path, file);
+    if(uploadError) return alert("خطأ في رفع الصورة");
+
+    const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(path);
+
+    const { error } = await _supabase.from('mangas').insert([{
+        title: title,
+        cover: urlData.publicUrl,
+        author: document.getElementById('in-a').value,
+        artist: document.getElementById('in-r').value,
+        genres: document.getElementById('in-g').value,
+        publisher: document.getElementById('in-pub').value,
+        desc: document.getElementById('in-d').value,
+        chapters: [],
+        lastUpdated: new Date()
+    }]);
+
+    if(!error) { alert("تم النشر بنجاح!"); router(); }
+    else alert("خطأ في حفظ البيانات");
+}
 
 function login() {
     if(document.getElementById('u').value === "samer" && document.getElementById('p').value === "Samer#1212") {
         sessionStorage.setItem('isAdmin','t'); router();
-    }
+    } else alert("بيانات خاطئة");
 }
 function logout() { sessionStorage.removeItem('isAdmin'); router(); }
 
