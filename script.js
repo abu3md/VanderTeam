@@ -18,7 +18,7 @@ const router = async () => {
     app.innerHTML = '<div style="text-align:center; padding:100px; color:white;"><div class="spinner"></div></div>';
 
     const { data, error } = await _supabase.from('mangas').select('*').order('lastUpdated', { ascending: false });
-    if (error) console.error("Error:", error);
+    if (error) console.error("Error Fetching:", error);
     mangas = data || [];
 
     if (path === "/" || path === "/index.html") {
@@ -42,7 +42,7 @@ document.addEventListener("click", e => {
     }
 });
 
-// --- العرض الأساسي ---
+// --- العرض الأساسي للصفحات ---
 
 function renderHome() {
     return `<div class="grid-container">${mangas.map(m => `
@@ -86,7 +86,7 @@ function renderDetails(container, title) {
         </div>`;
 }
 
-// --- القارئ المصلح (PDF to Images مع خيار احتياطي) ---
+// --- القارئ المطور بعد التحديث (PDF to Images + Cache Busting) ---
 
 async function renderReader(container, mTitle, cTitle) {
     const m = mangas.find(x => x.title === mTitle);
@@ -101,15 +101,25 @@ async function renderReader(container, mTitle, cTitle) {
             </div>
             <div id="reader-pages" class="chapter-images">
                 <div class="spinner"></div>
-                <p style="color:white; text-align:center;">جاري معالجة الصفحات...</p>
+                <p style="color:white; text-align:center;">جاري جلب صفحات الفصل...</p>
             </div>
         </div>`;
     
+    // محتوى يظهر في حال فشل المتصفح في معالجة الملف برمجياً
+    const fallbackHTML = `
+        <div style="text-align:center; padding:40px; color: white;">
+            <p style="margin-bottom:15px;">⚠️ تعذر عرض الصور تلقائياً بسبب قيود الأمان (CORS).</p>
+            <a href="${ch.url}" target="_blank" class="action-btn" style="text-decoration:none; display:inline-block; background:var(--accent);">فتح الفصل في نافذة جديدة</a>
+            <p style="margin-top:20px; font-size:0.9rem; color:#ccc;">أو يمكنك المحاولة مرة أخرى عبر تحديث الصفحة.</p>
+        </div>`;
+
     try {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
         
-        // محاولة تحميل الملف
-        const loadingTask = pdfjsLib.getDocument(ch.url);
+        // إضافة Timestamp للرابط لتجنب الكاش الذي قد يسبب أخطاء CORS قديمة
+        const finalUrl = `${ch.url}?t=${new Date().getTime()}`;
+        
+        const loadingTask = pdfjsLib.getDocument(finalUrl);
         const pdf = await loadingTask.promise;
         const pagesContainer = document.getElementById('reader-pages');
         pagesContainer.innerHTML = "";
@@ -125,22 +135,16 @@ async function renderReader(container, mTitle, cTitle) {
             await page.render({ canvasContext: context, viewport }).promise;
             
             const img = new Image();
-            img.src = canvas.toDataURL('image/jpeg', 0.8);
+            img.src = canvas.toDataURL('image/jpeg', 0.85);
             pagesContainer.appendChild(img);
         }
     } catch (e) {
-        console.error("PDF Reader Error:", e);
-        // في حال فشل الـ CORS برمجياً، نعرض الملف عبر iframe كحل نهائي
-        document.getElementById('reader-pages').innerHTML = `
-            <div style="text-align:center; padding:20px; color: white;">
-                <p>⚠️ تعذر التحويل التلقائي لصور (بسبب قيود المتصفح أو CORS).</p>
-                <p>يمكنك القراءة مباشرة عبر المشغل المدمج أدناه:</p>
-                <iframe src="${ch.url}" style="width:100%; height:90vh; border:none; margin-top:20px; border-radius:10px; background:white;"></iframe>
-            </div>`;
+        console.error("Reader Error:", e);
+        document.getElementById('reader-pages').innerHTML = fallbackHTML;
     }
 }
 
-// --- لوحة التحكم (Admin) ---
+// --- لوحة الإدارة (Admin) ---
 
 function renderAdmin(container) {
     if (!sessionStorage.getItem('isAdmin')) {
@@ -154,7 +158,7 @@ function renderAdmin(container) {
     container.innerHTML = `<div style="max-width:1200px; margin:auto; padding:20px;">
         <div style="display:flex; gap:10px; margin-bottom:20px;">
             <button class="action-btn" onclick="showForm('add')">نشر جديد</button>
-            <button class="action-btn" onclick="showForm('edit')">إدارة المانجا والفصول</button>
+            <button class="action-btn" onclick="showForm('edit')">إدارة الفصول والمانجا</button>
             <button class="action-btn" style="background:var(--accent)" onclick="logout()">خروج</button>
         </div>
         <div id="form-area"></div>
@@ -165,7 +169,7 @@ function showForm(type) {
     const area = document.getElementById('form-area');
     if(type === 'add') {
         area.innerHTML = `<div class="island">
-            <h3>نشر مانجا جديدة</h3>
+            <h3>بيانات المانجا</h3>
             <div class="admin-form-grid">
                 <input id="in-t" placeholder="العنوان"><input id="in-a" placeholder="الكاتب">
                 <input id="in-r" placeholder="الرسام"><input id="in-g" placeholder="التصنيفات">
@@ -173,12 +177,12 @@ function showForm(type) {
             </div>
             <textarea id="in-d" placeholder="الوصف" style="height:100px;"></textarea>
             <input type="file" id="in-c">
-            <button class="action-btn" onclick="saveNew()">نشر</button>
+            <button class="action-btn" onclick="saveNew()">حفظ ونشر</button>
         </div>`;
     } else {
         area.innerHTML = `<div class="island">
             <select id="s-m" onchange="setupEdit(this.value)">
-                <option value="">اختر المانجا للتعديل</option>
+                <option value="">-- اختر المانجا لتعديلها --</option>
                 ${mangas.map(m=>`<option value="${m.title}">${m.title}</option>`).join('')}
             </select>
             <div id="e-fields"></div>
@@ -189,8 +193,7 @@ function showForm(type) {
 function setupEdit(title) {
     if(!title) return;
     const m = mangas.find(x => x.title === title);
-    const eFields = document.getElementById('e-fields');
-    eFields.innerHTML = `
+    document.getElementById('e-fields').innerHTML = `
         <div style="margin-top:20px;">
             <div class="admin-form-grid">
                 <input id="ed-t" value="${m.title}"><input id="ed-a" value="${m.author || ''}">
@@ -198,10 +201,10 @@ function setupEdit(title) {
                 <input id="ed-pub" value="${m.publisher || ''}"><input id="ed-date" value="${m.releaseDate || ''}">
             </div>
             <textarea id="ed-d" style="height:100px;">${m.desc || ''}</textarea>
-            <button class="action-btn" onclick="saveEdit('${m.title}')">تحديث البيانات</button>
+            <button class="action-btn" onclick="saveEdit('${m.title}')">تحديث المعلومات الأساسية</button>
             
             <div class="edit-ch-list">
-                <h4 style="margin:20px 0;">إدارة الفصول</h4>
+                <h4 style="margin:25px 0 10px;">الفصول الحالية</h4>
                 ${(m.chapters || []).map((ch, idx) => `
                     <div class="edit-ch-row">
                         <input id="ch-name-${idx}" value="${ch.title}" style="flex:1; margin:0;">
@@ -211,7 +214,7 @@ function setupEdit(title) {
                     </div>
                 `).join('')}
                 
-                <h4 style="margin-top:20px;">إضافة فصل جديد</h4>
+                <h4 style="margin-top:25px;">رفع فصل جديد</h4>
                 <div style="display:flex; gap:10px;">
                     <input id="new-ch-t" placeholder="عنوان الفصل" style="flex:1;"><input type="file" id="new-ch-f" style="flex:1;">
                     <button class="action-btn" onclick="addNewChapter('${m.title}')" style="width:auto;">رفع</button>
@@ -220,10 +223,10 @@ function setupEdit(title) {
         </div>`;
 }
 
-// --- العمليات (Actions) ---
+// --- العمليات على البيانات ---
 
 async function deleteChapter(mTitle, index) {
-    if(!confirm("حذف الفصل؟")) return;
+    if(!confirm("هل تود حذف هذا الفصل؟")) return;
     const m = mangas.find(x => x.title === mTitle);
     m.chapters.splice(index, 1);
     await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
@@ -248,6 +251,7 @@ async function updateChapter(mTitle, index) {
 async function addNewChapter(mTitle) {
     const title = document.getElementById('new-ch-t').value;
     const file = document.getElementById('new-ch-f').files[0];
+    if(!title || !file) return alert("يرجى ملء البيانات");
     const path = `chapters/${Date.now()}_${file.name}`;
     await _supabase.storage.from('vander-files').upload(path, file);
     const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
@@ -260,6 +264,7 @@ async function addNewChapter(mTitle) {
 async function saveNew() {
     const title = document.getElementById('in-t').value;
     const file = document.getElementById('in-c').files[0];
+    if(!title || !file) return alert("العنوان والغلاف مطلوبان");
     const path = `covers/${Date.now()}_${file.name}`;
     await _supabase.storage.from('vander-files').upload(path, file);
     const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
@@ -286,7 +291,7 @@ async function saveEdit(oldT) {
 function login() {
     if(document.getElementById('u').value === "samer" && document.getElementById('p').value === "Samer#1212") {
         sessionStorage.setItem('isAdmin', 't'); router();
-    }
+    } else { alert("خطأ في البيانات"); }
 }
 function logout() { sessionStorage.removeItem('isAdmin'); router(); }
 
