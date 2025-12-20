@@ -42,7 +42,7 @@ document.addEventListener("click", e => {
     }
 });
 
-// --- العرض الأساسي للصفحات ---
+// --- وظائف العرض (Home & Details) ---
 
 function renderHome() {
     return `<div class="grid-container">${mangas.map(m => `
@@ -86,7 +86,7 @@ function renderDetails(container, title) {
         </div>`;
 }
 
-// --- القارئ المطور بعد التحديث (PDF to Images + Cache Busting) ---
+// --- القارئ (استخدام ArrayBuffer لتجاوز قيود CORS) ---
 
 async function renderReader(container, mTitle, cTitle) {
     const m = mangas.find(x => x.title === mTitle);
@@ -101,25 +101,19 @@ async function renderReader(container, mTitle, cTitle) {
             </div>
             <div id="reader-pages" class="chapter-images">
                 <div class="spinner"></div>
-                <p style="color:white; text-align:center;">جاري جلب صفحات الفصل...</p>
+                <p style="color:white; text-align:center;">جاري جلب بيانات الملف...</p>
             </div>
         </div>`;
     
-    // محتوى يظهر في حال فشل المتصفح في معالجة الملف برمجياً
-    const fallbackHTML = `
-        <div style="text-align:center; padding:40px; color: white;">
-            <p style="margin-bottom:15px;">⚠️ تعذر عرض الصور تلقائياً بسبب قيود الأمان (CORS).</p>
-            <a href="${ch.url}" target="_blank" class="action-btn" style="text-decoration:none; display:inline-block; background:var(--accent);">فتح الفصل في نافذة جديدة</a>
-            <p style="margin-top:20px; font-size:0.9rem; color:#ccc;">أو يمكنك المحاولة مرة أخرى عبر تحديث الصفحة.</p>
-        </div>`;
-
     try {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
         
-        // إضافة Timestamp للرابط لتجنب الكاش الذي قد يسبب أخطاء CORS قديمة
-        const finalUrl = `${ch.url}?t=${new Date().getTime()}`;
-        
-        const loadingTask = pdfjsLib.getDocument(finalUrl);
+        // محاولة جلب الملف كبيانات ArrayBuffer
+        const response = await fetch(ch.url);
+        if (!response.ok) throw new Error("CORS or Network Error");
+        const arrayBuffer = await response.arrayBuffer();
+
+        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
         const pdf = await loadingTask.promise;
         const pagesContainer = document.getElementById('reader-pages');
         pagesContainer.innerHTML = "";
@@ -140,11 +134,15 @@ async function renderReader(container, mTitle, cTitle) {
         }
     } catch (e) {
         console.error("Reader Error:", e);
-        document.getElementById('reader-pages').innerHTML = fallbackHTML;
+        document.getElementById('reader-pages').innerHTML = `
+            <div style="text-align:center; padding:40px; color: white;">
+                <p>⚠️ تعذر الوصول لبيانات الملف برمجياً (CORS Policy).</p>
+                <a href="${ch.url}" target="_blank" class="action-btn" style="text-decoration:none; background:var(--accent);">فتح الفصل في نافذة مستقلة</a>
+            </div>`;
     }
 }
 
-// --- لوحة الإدارة (Admin) ---
+// --- إدارة البيانات (Admin) ---
 
 function renderAdmin(container) {
     if (!sessionStorage.getItem('isAdmin')) {
@@ -158,7 +156,7 @@ function renderAdmin(container) {
     container.innerHTML = `<div style="max-width:1200px; margin:auto; padding:20px;">
         <div style="display:flex; gap:10px; margin-bottom:20px;">
             <button class="action-btn" onclick="showForm('add')">نشر جديد</button>
-            <button class="action-btn" onclick="showForm('edit')">إدارة الفصول والمانجا</button>
+            <button class="action-btn" onclick="showForm('edit')">إدارة المانجا والفصول</button>
             <button class="action-btn" style="background:var(--accent)" onclick="logout()">خروج</button>
         </div>
         <div id="form-area"></div>
@@ -177,12 +175,12 @@ function showForm(type) {
             </div>
             <textarea id="in-d" placeholder="الوصف" style="height:100px;"></textarea>
             <input type="file" id="in-c">
-            <button class="action-btn" onclick="saveNew()">حفظ ونشر</button>
+            <button class="action-btn" onclick="saveNew()">نشر</button>
         </div>`;
     } else {
         area.innerHTML = `<div class="island">
             <select id="s-m" onchange="setupEdit(this.value)">
-                <option value="">-- اختر المانجا لتعديلها --</option>
+                <option value="">-- اختر المانجا للتعديل --</option>
                 ${mangas.map(m=>`<option value="${m.title}">${m.title}</option>`).join('')}
             </select>
             <div id="e-fields"></div>
@@ -201,10 +199,10 @@ function setupEdit(title) {
                 <input id="ed-pub" value="${m.publisher || ''}"><input id="ed-date" value="${m.releaseDate || ''}">
             </div>
             <textarea id="ed-d" style="height:100px;">${m.desc || ''}</textarea>
-            <button class="action-btn" onclick="saveEdit('${m.title}')">تحديث المعلومات الأساسية</button>
+            <button class="action-btn" onclick="saveEdit('${m.title}')">تحديث المعلومات</button>
             
             <div class="edit-ch-list">
-                <h4 style="margin:25px 0 10px;">الفصول الحالية</h4>
+                <h4 style="margin:20px 0;">إدارة الفصول</h4>
                 ${(m.chapters || []).map((ch, idx) => `
                     <div class="edit-ch-row">
                         <input id="ch-name-${idx}" value="${ch.title}" style="flex:1; margin:0;">
@@ -214,19 +212,19 @@ function setupEdit(title) {
                     </div>
                 `).join('')}
                 
-                <h4 style="margin-top:25px;">رفع فصل جديد</h4>
+                <h4 style="margin-top:20px;">رفع فصل جديد</h4>
                 <div style="display:flex; gap:10px;">
-                    <input id="new-ch-t" placeholder="عنوان الفصل" style="flex:1;"><input type="file" id="new-ch-f" style="flex:1;">
+                    <input id="new-ch-t" placeholder="اسم الفصل"><input type="file" id="new-ch-f">
                     <button class="action-btn" onclick="addNewChapter('${m.title}')" style="width:auto;">رفع</button>
                 </div>
             </div>
         </div>`;
 }
 
-// --- العمليات على البيانات ---
+// --- العمليات (Create / Update / Delete) ---
 
 async function deleteChapter(mTitle, index) {
-    if(!confirm("هل تود حذف هذا الفصل؟")) return;
+    if(!confirm("حذف الفصل؟")) return;
     const m = mangas.find(x => x.title === mTitle);
     m.chapters.splice(index, 1);
     await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
@@ -245,13 +243,13 @@ async function updateChapter(mTitle, index) {
         m.chapters[index].url = data.publicUrl;
     }
     await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
-    alert("تم التحديث"); router();
+    alert("تم التعديل"); router();
 }
 
 async function addNewChapter(mTitle) {
     const title = document.getElementById('new-ch-t').value;
     const file = document.getElementById('new-ch-f').files[0];
-    if(!title || !file) return alert("يرجى ملء البيانات");
+    if(!title || !file) return;
     const path = `chapters/${Date.now()}_${file.name}`;
     await _supabase.storage.from('vander-files').upload(path, file);
     const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
@@ -291,7 +289,7 @@ async function saveEdit(oldT) {
 function login() {
     if(document.getElementById('u').value === "samer" && document.getElementById('p').value === "Samer#1212") {
         sessionStorage.setItem('isAdmin', 't'); router();
-    } else { alert("خطأ في البيانات"); }
+    }
 }
 function logout() { sessionStorage.removeItem('isAdmin'); router(); }
 
