@@ -5,7 +5,7 @@ const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 let mangas = [];
 
-// التنقل بين الصفحات (Router)
+// نظام التنقل (Router)
 const navigateTo = url => { 
     history.pushState(null, null, url); 
     router(); 
@@ -15,15 +15,12 @@ const router = async () => {
     const path = window.location.pathname;
     const app = document.getElementById('app');
     
-    // شاشة تحميل بسيطة
     app.innerHTML = '<div style="text-align:center; padding:100px; color:white;"><div class="spinner"></div></div>';
 
-    // جلب البيانات من Supabase
     const { data, error } = await _supabase.from('mangas').select('*').order('lastUpdated', { ascending: false });
-    if (error) console.error("Error fetching data:", error);
+    if (error) console.error("Error:", error);
     mangas = data || [];
 
-    // تحديد الصفحة المراد عرضها
     if (path === "/" || path === "/index.html") {
         app.innerHTML = `<div class="site-banner"></div>` + renderHome();
     } else if (path === "/admin") {
@@ -33,18 +30,11 @@ const router = async () => {
         const mTitle = decodeURIComponent(parts[2]);
         const cTitle = parts[3] ? decodeURIComponent(parts[3]) : null;
         
-        if (cTitle) {
-            renderReader(app, mTitle, cTitle);
-        } else {
-            renderDetails(app, mTitle);
-        }
+        cTitle ? renderReader(app, mTitle, cTitle) : renderDetails(app, mTitle);
     }
 };
 
-// مراقبة أزرار المتصفح (للخلف وللأمام)
 window.onpopstate = router;
-
-// جعل الروابط تعمل بدون إعادة تحميل الصفحة
 document.addEventListener("click", e => {
     if (e.target.closest("[data-link]")) { 
         e.preventDefault(); 
@@ -52,10 +42,9 @@ document.addEventListener("click", e => {
     }
 });
 
-// --- وظائف العرض (Rendering) ---
+// --- العرض الأساسي ---
 
 function renderHome() {
-    if (mangas.length === 0) return '<p style="text-align:center; color:white; padding:50px;">لا توجد مانجا حالياً.</p>';
     return `<div class="grid-container">${mangas.map(m => `
         <a href="/manga/${encodeURIComponent(m.title)}" class="manga-card" data-link style="text-decoration:none;">
             <div class="island" style="padding:0; overflow:hidden; aspect-ratio:1/1;">
@@ -76,9 +65,7 @@ function renderDetails(container, title) {
             <div class="island cover-island">
                 <img src="${m.cover}">
                 <div class="interaction-bar">
-                    <img src="/hart.png" title="إعجاب"> 
-                    <img src="/comment.png" title="تعليق"> 
-                    <img src="/save.png" title="حفظ">
+                    <img src="/hart.png"> <img src="/comment.png"> <img src="/save.png">
                 </div>
             </div>
             <div class="island info-island">
@@ -90,20 +77,16 @@ function renderDetails(container, title) {
                 <div class="data-row"><span>الناشر:</span> <span>${m.publisher || '-'}</span></div>
                 <div class="data-row"><span>تاريخ الصدور:</span> <span>${m.releaseDate || '-'}</span></div>
                 <hr style="margin:20px 0;">
-                <p style="line-height:1.8; white-space: pre-wrap;">${m.desc || 'لا يوجد وصف متاح.'}</p>
+                <p style="line-height:1.8;">${m.desc || ''}</p>
             </div>
             <div class="island chapters-island">
                 <h3 style="margin-bottom:15px; text-align:center;">قائمة الفصول</h3>
-                <div style="max-height: 500px; overflow-y: auto;">
-                    ${(m.chapters || []).length > 0 
-                        ? m.chapters.map(ch => `<div class="ch-item" onclick="navigateTo('/manga/${encodeURIComponent(m.title)}/${encodeURIComponent(ch.title)}')">${ch.title}</div>`).join('')
-                        : '<p style="text-align:center; color:#999;">لا توجد فصول بعد.</p>'}
-                </div>
+                ${(m.chapters || []).map(ch => `<div class="ch-item" onclick="navigateTo('/manga/${encodeURIComponent(m.title)}/${encodeURIComponent(ch.title)}')">${ch.title}</div>`).join('')}
             </div>
         </div>`;
 }
 
-// --- القارئ المتطور (PDF to Smooth Images) ---
+// --- القارئ المصلح (PDF to Images مع خيار احتياطي) ---
 
 async function renderReader(container, mTitle, cTitle) {
     const m = mangas.find(x => x.title === mTitle);
@@ -114,30 +97,26 @@ async function renderReader(container, mTitle, cTitle) {
         <div class="reader-container">
             <div class="reader-controls">
                 <button class="action-btn" style="width:auto;" onclick="navigateTo('/manga/${encodeURIComponent(mTitle)}')">خروج</button>
-                <h3 style="font-size:1.1rem;">${mTitle} - ${cTitle}</h3>
+                <h3>${mTitle} - ${cTitle}</h3>
             </div>
             <div id="reader-pages" class="chapter-images">
                 <div class="spinner"></div>
-                <p style="color:white; text-align:center;">جاري معالجة الصفحات... (يرجى الانتظار قليلاً)</p>
+                <p style="color:white; text-align:center;">جاري معالجة الصفحات...</p>
             </div>
         </div>`;
     
     try {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
         
-        // جلب الملف عبر Fetch لتجاوز قيود المتصفح المباشرة
-        const response = await fetch(ch.url, { mode: 'cors' });
-        if (!response.ok) throw new Error("Network response was not ok");
-        const arrayBuffer = await response.arrayBuffer();
-
-        const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+        // محاولة تحميل الملف
+        const loadingTask = pdfjsLib.getDocument(ch.url);
         const pdf = await loadingTask.promise;
         const pagesContainer = document.getElementById('reader-pages');
         pagesContainer.innerHTML = "";
 
         for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
-            const viewport = page.getViewport({ scale: 2 }); // دقة عالية
+            const viewport = page.getViewport({ scale: 1.5 }); 
             const canvas = document.createElement('canvas');
             const context = canvas.getContext('2d');
             canvas.height = viewport.height;
@@ -146,16 +125,17 @@ async function renderReader(container, mTitle, cTitle) {
             await page.render({ canvasContext: context, viewport }).promise;
             
             const img = new Image();
-            img.src = canvas.toDataURL('image/jpeg', 0.85); // ضغط خفيف للأداء
+            img.src = canvas.toDataURL('image/jpeg', 0.8);
             pagesContainer.appendChild(img);
         }
     } catch (e) {
-        console.error("Reader Error:", e);
+        console.error("PDF Reader Error:", e);
+        // في حال فشل الـ CORS برمجياً، نعرض الملف عبر iframe كحل نهائي
         document.getElementById('reader-pages').innerHTML = `
-            <div style="text-align:center; padding:40px; color: #ff4d4d;">
-                <p>⚠️ تعذر قراءة الملف برمجياً.</p>
-                <p style="font-size: 13px; margin-bottom:15px;">قد يكون السبب هو إعدادات CORS في Supabase.</p>
-                <a href="${ch.url}" target="_blank" class="action-btn" style="display:inline-block; text-decoration:none;">فتح الملف يدوياً</a>
+            <div style="text-align:center; padding:20px; color: white;">
+                <p>⚠️ تعذر التحويل التلقائي لصور (بسبب قيود المتصفح أو CORS).</p>
+                <p>يمكنك القراءة مباشرة عبر المشغل المدمج أدناه:</p>
+                <iframe src="${ch.url}" style="width:100%; height:90vh; border:none; margin-top:20px; border-radius:10px; background:white;"></iframe>
             </div>`;
     }
 }
@@ -173,7 +153,7 @@ function renderAdmin(container) {
     }
     container.innerHTML = `<div style="max-width:1200px; margin:auto; padding:20px;">
         <div style="display:flex; gap:10px; margin-bottom:20px;">
-            <button class="action-btn" onclick="showForm('add')">نشر مانجا جديدة</button>
+            <button class="action-btn" onclick="showForm('add')">نشر جديد</button>
             <button class="action-btn" onclick="showForm('edit')">إدارة المانجا والفصول</button>
             <button class="action-btn" style="background:var(--accent)" onclick="logout()">خروج</button>
         </div>
@@ -185,21 +165,20 @@ function showForm(type) {
     const area = document.getElementById('form-area');
     if(type === 'add') {
         area.innerHTML = `<div class="island">
-            <h3>بيانات المانجا الجديدة</h3>
+            <h3>نشر مانجا جديدة</h3>
             <div class="admin-form-grid">
                 <input id="in-t" placeholder="العنوان"><input id="in-a" placeholder="الكاتب">
                 <input id="in-r" placeholder="الرسام"><input id="in-g" placeholder="التصنيفات">
                 <input id="in-pub" placeholder="الناشر"><input id="in-date" placeholder="تاريخ الصدور">
             </div>
-            <textarea id="in-d" placeholder="الوصف الكامل" style="height:100px;"></textarea>
-            <p>اختر غلاف المانجا:</p>
+            <textarea id="in-d" placeholder="الوصف" style="height:100px;"></textarea>
             <input type="file" id="in-c">
-            <button class="action-btn" onclick="saveNew()">نشر المانجا</button>
+            <button class="action-btn" onclick="saveNew()">نشر</button>
         </div>`;
     } else {
         area.innerHTML = `<div class="island">
             <select id="s-m" onchange="setupEdit(this.value)">
-                <option value="">-- اختر المانجا للتعديل --</option>
+                <option value="">اختر المانجا للتعديل</option>
                 ${mangas.map(m=>`<option value="${m.title}">${m.title}</option>`).join('')}
             </select>
             <div id="e-fields"></div>
@@ -213,141 +192,102 @@ function setupEdit(title) {
     const eFields = document.getElementById('e-fields');
     eFields.innerHTML = `
         <div style="margin-top:20px;">
-            <h4>تعديل معلومات المانجا الأساسية</h4>
             <div class="admin-form-grid">
                 <input id="ed-t" value="${m.title}"><input id="ed-a" value="${m.author || ''}">
                 <input id="ed-r" value="${m.artist || ''}"><input id="ed-g" value="${m.genres || ''}">
                 <input id="ed-pub" value="${m.publisher || ''}"><input id="ed-date" value="${m.releaseDate || ''}">
             </div>
             <textarea id="ed-d" style="height:100px;">${m.desc || ''}</textarea>
-            <button class="action-btn" onclick="saveEdit('${m.title}')">حفظ التغييرات</button>
+            <button class="action-btn" onclick="saveEdit('${m.title}')">تحديث البيانات</button>
             
             <div class="edit-ch-list">
-                <h4 style="margin:25px 0 15px;">إدارة الفصول المرفوعة</h4>
+                <h4 style="margin:20px 0;">إدارة الفصول</h4>
                 ${(m.chapters || []).map((ch, idx) => `
                     <div class="edit-ch-row">
                         <input id="ch-name-${idx}" value="${ch.title}" style="flex:1; margin:0;">
-                        <input type="file" id="ch-file-${idx}" style="flex:1; margin:0;" title="اختر ملف جديد لاستبدال الحالي">
+                        <input type="file" id="ch-file-${idx}" style="flex:1; margin:0;">
                         <button class="action-btn" onclick="updateChapter('${m.title}', ${idx})" style="width:auto; margin:0;">تحديث</button>
                         <button class="action-btn btn-del" onclick="deleteChapter('${m.title}', ${idx})" style="width:auto; margin:0;">حذف</button>
                     </div>
                 `).join('')}
                 
-                <h4 style="margin-top:25px;">إضافة فصل جديد لهذه المانجا</h4>
+                <h4 style="margin-top:20px;">إضافة فصل جديد</h4>
                 <div style="display:flex; gap:10px;">
-                    <input id="new-ch-t" placeholder="رقم أو اسم الفصل" style="flex:1;">
-                    <input type="file" id="new-ch-f" style="flex:1;">
-                    <button class="action-btn" onclick="addNewChapter('${m.title}')" style="width:auto;">رفع الفصل</button>
+                    <input id="new-ch-t" placeholder="عنوان الفصل" style="flex:1;"><input type="file" id="new-ch-f" style="flex:1;">
+                    <button class="action-btn" onclick="addNewChapter('${m.title}')" style="width:auto;">رفع</button>
                 </div>
             </div>
         </div>`;
 }
 
-// --- العمليات على البيانات (Supabase Actions) ---
+// --- العمليات (Actions) ---
 
 async function deleteChapter(mTitle, index) {
-    if(!confirm("هل أنت متأكد من حذف هذا الفصل نهائياً؟")) return;
+    if(!confirm("حذف الفصل؟")) return;
     const m = mangas.find(x => x.title === mTitle);
     m.chapters.splice(index, 1);
-    const { error } = await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
-    if (!error) { alert("تم الحذف بنجاح"); router(); }
+    await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
+    router();
 }
 
 async function updateChapter(mTitle, index) {
     const m = mangas.find(x => x.title === mTitle);
     const newName = document.getElementById(`ch-name-${index}`).value;
     const newFile = document.getElementById(`ch-file-${index}`).files[0];
-    
     m.chapters[index].title = newName;
-    
     if(newFile) {
         const path = `chapters/${Date.now()}_${newFile.name}`;
         await _supabase.storage.from('vander-files').upload(path, newFile);
         const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
         m.chapters[index].url = data.publicUrl;
     }
-    
-    const { error } = await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
-    if (!error) { alert("تم تحديث الفصل"); router(); }
+    await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
+    alert("تم التحديث"); router();
 }
 
 async function addNewChapter(mTitle) {
     const title = document.getElementById('new-ch-t').value;
     const file = document.getElementById('new-ch-f').files[0];
-    if(!title || !file) return alert("يرجى إدخال اسم الفصل واختيار ملف PDF");
-
     const path = `chapters/${Date.now()}_${file.name}`;
     await _supabase.storage.from('vander-files').upload(path, file);
     const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
-
     const m = mangas.find(x => x.title === mTitle);
     const chapters = [...(m.chapters || []), { title, url: data.publicUrl }];
-    
-    const { error } = await _supabase.from('mangas').update({ 
-        chapters, 
-        lastUpdated: new Date() 
-    }).eq('title', mTitle);
-    
-    if (!error) { alert("تم الرفع!"); router(); }
+    await _supabase.from('mangas').update({ chapters, lastUpdated: new Date() }).eq('title', mTitle);
+    router();
 }
 
 async function saveNew() {
     const title = document.getElementById('in-t').value;
     const file = document.getElementById('in-c').files[0];
-    if(!title || !file) return alert("العنوان والغلاف مطلوبان");
-
     const path = `covers/${Date.now()}_${file.name}`;
     await _supabase.storage.from('vander-files').upload(path, file);
     const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
-
-    const { error } = await _supabase.from('mangas').insert([{
-        title, 
-        cover: data.publicUrl,
-        author: document.getElementById('in-a').value,
-        artist: document.getElementById('in-r').value,
-        genres: document.getElementById('in-g').value,
-        publisher: document.getElementById('in-pub').value,
-        releaseDate: document.getElementById('in-date').value,
-        desc: document.getElementById('in-d').value,
-        chapters: [], 
-        lastUpdated: new Date()
+    await _supabase.from('mangas').insert([{
+        title, cover: data.publicUrl,
+        author: document.getElementById('in-a').value, artist: document.getElementById('in-r').value,
+        genres: document.getElementById('in-g').value, publisher: document.getElementById('in-pub').value,
+        releaseDate: document.getElementById('in-date').value, desc: document.getElementById('in-d').value,
+        chapters: [], lastUpdated: new Date()
     }]);
-
-    if (!error) { alert("تم النشر بنجاح"); router(); }
+    router();
 }
 
 async function saveEdit(oldT) {
-    const { error } = await _supabase.from('mangas').update({
-        title: document.getElementById('ed-t').value,
-        author: document.getElementById('ed-a').value,
-        artist: document.getElementById('ed-r').value,
-        genres: document.getElementById('ed-g').value,
-        publisher: document.getElementById('ed-pub').value,
-        releaseDate: document.getElementById('ed-date').value,
-        desc: document.getElementById('ed-d').value,
-        lastUpdated: new Date()
+    await _supabase.from('mangas').update({
+        title: document.getElementById('ed-t').value, author: document.getElementById('ed-a').value,
+        artist: document.getElementById('ed-r').value, genres: document.getElementById('ed-g').value,
+        publisher: document.getElementById('ed-pub').value, releaseDate: document.getElementById('ed-date').value,
+        desc: document.getElementById('ed-d').value, lastUpdated: new Date()
     }).eq('title', oldT);
-
-    if (!error) { alert("تم تحديث البيانات بنجاح"); router(); }
+    router();
 }
-
-// --- نظام الدخول ---
 
 function login() {
-    const u = document.getElementById('u').value;
-    const p = document.getElementById('p').value;
-    if(u === "samer" && p === "Samer#1212") {
-        sessionStorage.setItem('isAdmin', 't'); 
-        router();
-    } else {
-        alert("بيانات الدخول خاطئة!");
+    if(document.getElementById('u').value === "samer" && document.getElementById('p').value === "Samer#1212") {
+        sessionStorage.setItem('isAdmin', 't'); router();
     }
 }
+function logout() { sessionStorage.removeItem('isAdmin'); router(); }
 
-function logout() { 
-    sessionStorage.removeItem('isAdmin'); 
-    router(); 
-}
-
-// تشغيل الراوتر عند تحميل الصفحة
 window.onload = router;
