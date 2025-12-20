@@ -7,32 +7,42 @@
 * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Cairo', sans-serif; }
 body { background: url('/background.png') fixed center/cover; min-height: 100vh; }
 
+/* الهيدر واللوجو */
+header { 
+    background: var(--q-bg); 
+    padding: 10px 30px; 
+    border-bottom: 3px solid var(--primary); 
+    display: flex; 
+    justify-content: space-between; 
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+.logo-box img { height: 50px; cursor: pointer; transition: 0.3s; }
+.logo-box img:hover { transform: scale(1.1); }
+
+/* صورة الهيدر (البانر) */
 .site-banner {
-    width: 100%; height: 180px;
-    background: url('/mainL.jpg') center/cover;
+    width: 100%; 
+    height: 200px;
+    background: url('/header.png') center/cover no-repeat;
     border-bottom: 5px solid var(--primary);
-    margin-bottom: 20px;
 }
 
-header { background: var(--q-bg); padding: 15px; border-bottom: 3px solid var(--primary); }
-.header-content { display: flex; justify-content: center; gap: 20px; }
+.header-content { display: flex; gap: 20px; }
 .header-content a { color: white; text-decoration: none; font-weight: bold; border: 2px solid white; padding: 5px 20px; border-radius: 10px; }
 
-/* شبكة الصفحة الرئيسية */
+/* الصفحة الرئيسية */
 .grid-container { 
     display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
     gap: 40px; max-width: 1200px; margin: 40px auto; padding: 0 20px;
 }
 
-/* تخطيط المعلومات: يمين (غلاف) - وسط (بيانات) - يسار (فصول) */
+/* تخطيط التفاصيل */
 .manga-detail-layout {
-    display: flex;
-    flex-direction: row-reverse; /* الغلاف أقصى اليمين */
-    justify-content: center;
-    gap: 25px;
-    max-width: 1400px;
-    margin: 30px auto;
-    padding: 20px;
+    display: flex; flex-direction: row-reverse; justify-content: center;
+    gap: 25px; max-width: 1400px; margin: 30px auto; padding: 20px;
 }
 
 .island {
@@ -43,8 +53,6 @@ header { background: var(--q-bg); padding: 15px; border-bottom: 3px solid var(--
 
 .cover-island { width: 320px; text-align: center; }
 .cover-island img { width: 100%; border-radius: 20px; border: 5px solid var(--primary); }
-.interaction-bar { display: flex; justify-content: center; gap: 15px; margin-top: 15px; }
-.interaction-bar img { width: 30px; cursor: pointer; }
 
 .info-island { flex: 1; min-width: 400px; }
 .info-island h1 { color: var(--primary); margin-bottom: 20px; font-weight: 900; }
@@ -55,20 +63,15 @@ header { background: var(--q-bg); padding: 15px; border-bottom: 3px solid var(--
     background: #555; color: white; padding: 12px; border-radius: 30px; 
     margin-bottom: 10px; cursor: pointer; text-align: center; font-weight: bold;
 }
-.ch-item:hover { background: var(--primary); }
 
-.spinner { border: 4px solid #f3f3f3; border-top: 4px solid var(--primary); border-radius: 50%; width: 40px; height: 40px; animation: spin 1s linear infinite; margin: 50px auto; }
-@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-.hidden { display: none !important; }
-
-/* Admin */
-input, textarea, select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #ccc; font-size: 16px; }
-.action-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; }
-
-/* تنسيق شبكة الحقول في لوحة التحكم لجعلها منظمة */
-.admin-form-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 15px;
+/* صندوق دخول الأدمن (صغير وفي الطرف) */
+.admin-login-small {
+    max-width: 300px;
+    margin: 50px 50px 50px auto; /* يدفعه للطرف */
+    padding: 15px;
 }
-@media (max-width: 600px) { .admin-form-grid { grid-template-columns: 1fr; } }
+.admin-login-small input { font-size: 14px; padding: 8px; }
+
+input, textarea, select { width: 100%; padding: 12px; margin-bottom: 10px; border-radius: 10px; border: 1px solid #ccc; }
+.action-btn { background: var(--primary); color: white; border: none; padding: 12px; border-radius: 10px; cursor: pointer; font-weight: bold; width: 100%; }
+.hidden { display: none !important; }
