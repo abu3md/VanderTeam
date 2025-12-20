@@ -5,10 +5,11 @@ const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 let mangas = [];
 
 const navigateTo = url => { history.pushState(null, null, url); router(); };
+
 const router = async () => {
     const path = window.location.pathname;
     const app = document.getElementById('app');
-    app.innerHTML = '<div style="text-align:center; padding:50px; color:white;">جاري التحميل...</div>';
+    app.innerHTML = '<div style="text-align:center; padding:100px; color:white;">جاري جلب البيانات...</div>';
 
     const { data } = await _supabase.from('mangas').select('*').order('lastUpdated', { ascending: false });
     mangas = data || [];
@@ -50,24 +51,22 @@ function renderDetails(container, title) {
             <div class="island cover-island">
                 <img src="${m.cover}">
                 <div class="interaction-bar">
-                    <img src="/hart.png" style="width:30px;"> 
-                    <img src="/comment.png" style="width:30px;"> 
-                    <img src="/save.png" style="width:30px;">
+                    <img src="/hart.png"> <img src="/comment.png"> <img src="/save.png">
                 </div>
             </div>
             <div class="island info-island">
                 <h1>${m.title}</h1>
-                <div class="data-row"><span>تاريخ التحديث:</span> <span>${new Date(m.lastUpdated).toLocaleDateString('ar-EG')}</span></div>
+                <div style="font-size: 0.9rem; color: #666; margin-bottom: 10px;">تم التحديث: ${new Date(m.lastUpdated).toLocaleDateString('ar-EG')}</div>
                 <div class="data-row"><span>الكاتب:</span> <span>${m.author || '-'}</span></div>
                 <div class="data-row"><span>الرسام:</span> <span>${m.artist || '-'}</span></div>
                 <div class="data-row"><span>التصنيفات:</span> <span>${m.genres || '-'}</span></div>
                 <div class="data-row"><span>الناشر:</span> <span>${m.publisher || '-'}</span></div>
                 <div class="data-row"><span>تاريخ الصدور:</span> <span>${m.releaseDate || '-'}</span></div>
-                <hr style="margin:20px 0;">
+                <hr style="margin:20px 0; border: 0.5px solid #eee;">
                 <p style="line-height:1.8;">${m.desc || ''}</p>
             </div>
             <div class="island chapters-island">
-                <h3 style="margin-bottom:15px; text-align:center;">الفصول</h3>
+                <h3 style="margin-bottom:15px; text-align:center; color: var(--q-bg);">قائمة الفصول</h3>
                 ${(m.chapters || []).map(ch => `<div class="ch-item" onclick="navigateTo('/manga/${encodeURIComponent(m.title)}/${encodeURIComponent(ch.title)}')">${ch.title}</div>`).join('')}
             </div>
         </div>`;
@@ -77,28 +76,131 @@ function renderAdmin(container) {
     if (!sessionStorage.getItem('isAdmin')) {
         container.innerHTML = `
             <div class="island admin-login-small">
-                <h4 style="text-align:center; margin-bottom:10px;">دخول الإدارة</h4>
+                <h3 style="text-align:center; margin-bottom:15px;">دخول المشرفين</h3>
                 <input type="text" id="u" placeholder="الاسم">
                 <input type="password" id="p" placeholder="كلمة المرور">
-                <button class="action-btn" onclick="login()">دخول</button>
+                <button class="action-btn" style="width:100%;" onclick="login()">دخول</button>
             </div>`;
         return;
     }
     container.innerHTML = `
         <div style="max-width:1200px; margin:auto; padding:20px;">
             <div style="display:flex; gap:10px; margin-bottom:20px;">
-                <button class="action-btn" onclick="showForm('add')">إضافة مانجا</button>
-                <button class="action-btn" onclick="showForm('edit')">تعديل مانجا</button>
+                <button class="action-btn" onclick="showForm('add')">نشر مانجا جديدة</button>
+                <button class="action-btn" onclick="showForm('edit')">إدارة المانجا</button>
                 <button class="action-btn" style="background:var(--accent)" onclick="logout()">خروج</button>
             </div>
             <div id="form-area"></div>
         </div>`;
 }
 
+function showForm(type) {
+    const area = document.getElementById('form-area');
+    if(type === 'add') {
+        area.innerHTML = `<div class="island">
+            <h3>بيانات المانجا الجديدة</h3>
+            <div class="admin-form-grid">
+                <input id="in-t" placeholder="عنوان المانجا">
+                <input id="in-a" placeholder="الكاتب">
+                <input id="in-r" placeholder="الرسام">
+                <input id="in-g" placeholder="التصنيفات">
+                <input id="in-pub" placeholder="الناشر">
+                <input id="in-date" placeholder="تاريخ الصدور">
+            </div>
+            <textarea id="in-d" placeholder="الوصف" style="height:120px;"></textarea>
+            <label>الغلاف:</label><input type="file" id="in-c">
+            <button class="action-btn" onclick="saveNew()">حفظ المانجا الآن</button>
+        </div>`;
+    } else {
+        area.innerHTML = `<div class="island">
+            <select id="s-m" onchange="setupEdit(this.value)">
+                <option value="">اختر المانجا للتعديل</option>
+                ${mangas.map(m=>`<option value="${m.title}">${m.title}</option>`).join('')}
+            </select>
+            <div id="e-fields"></div>
+        </div>`;
+    }
+}
+
+async function saveNew() {
+    const title = document.getElementById('in-t').value;
+    const file = document.getElementById('in-c').files[0];
+    if(!title || !file) return alert("العنوان والغلاف مطلوبان");
+
+    const path = `covers/${Date.now()}_${file.name}`;
+    await _supabase.storage.from('vander-files').upload(path, file);
+    const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(path);
+
+    await _supabase.from('mangas').insert([{
+        title, cover: urlData.publicUrl,
+        author: document.getElementById('in-a').value,
+        artist: document.getElementById('in-r').value,
+        genres: document.getElementById('in-g').value,
+        publisher: document.getElementById('in-pub').value,
+        releaseDate: document.getElementById('in-date').value,
+        desc: document.getElementById('in-d').value,
+        chapters: [], lastUpdated: new Date()
+    }]);
+    alert("تم النشر!"); router();
+}
+
+function setupEdit(title) {
+    if(!title) return;
+    const m = mangas.find(x => x.title === title);
+    const area = document.getElementById('e-fields');
+    area.innerHTML = `
+        <div style="margin-top:20px;">
+            <div class="admin-form-grid">
+                <input id="ed-t" value="${m.title}" placeholder="العنوان">
+                <input id="ed-a" value="${m.author || ''}" placeholder="الكاتب">
+                <input id="ed-r" value="${m.artist || ''}" placeholder="الرسام">
+                <input id="ed-g" value="${m.genres || ''}" placeholder="التصنيفات">
+                <input id="ed-pub" value="${m.publisher || ''}" placeholder="الناشر">
+                <input id="ed-date" value="${m.releaseDate || ''}" placeholder="تاريخ الصدور">
+            </div>
+            <textarea id="ed-d" style="height:100px;">${m.desc || ''}</textarea>
+            <button class="action-btn" onclick="saveEdit('${m.title}')">تحديث</button>
+            <hr style="margin:20px 0;">
+            <h4>رفع فصل جديد</h4>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <input id="ch-t" placeholder="عنوان الفصل" style="flex:1;">
+                <input type="file" id="ch-f" style="flex:1;">
+                <button class="action-btn" style="width:auto; margin:0;" onclick="uploadChapter('${m.title}')">رفع</button>
+            </div>
+        </div>`;
+}
+
+async function saveEdit(oldTitle) {
+    await _supabase.from('mangas').update({
+        title: document.getElementById('ed-t').value,
+        author: document.getElementById('ed-a').value,
+        artist: document.getElementById('ed-r').value,
+        genres: document.getElementById('ed-g').value,
+        publisher: document.getElementById('ed-pub').value,
+        releaseDate: document.getElementById('ed-date').value,
+        desc: document.getElementById('ed-d').value,
+        lastUpdated: new Date()
+    }).eq('title', oldTitle);
+    alert("تم التعديل!"); router();
+}
+
+async function uploadChapter(mTitle) {
+    const title = document.getElementById('ch-t').value;
+    const file = document.getElementById('ch-f').files[0];
+    const path = `chapters/${Date.now()}_${file.name}`;
+    await _supabase.storage.from('vander-files').upload(path, file);
+    const { data: urlData } = _supabase.storage.from('vander-files').getPublicUrl(path);
+
+    const m = mangas.find(x => x.title === mTitle);
+    const chapters = [...(m.chapters || []), { title, url: urlData.publicUrl }];
+    await _supabase.from('mangas').update({ chapters, lastUpdated: new Date() }).eq('title', mTitle);
+    alert("تم رفع الفصل!"); router();
+}
+
 function login() {
     if(document.getElementById('u').value === "samer" && document.getElementById('p').value === "Samer#1212") {
         sessionStorage.setItem('isAdmin', 't'); router();
-    } else { alert("بيانات خاطئة"); }
+    } else alert("بيانات خاطئة");
 }
 function logout() { sessionStorage.removeItem('isAdmin'); router(); }
 
