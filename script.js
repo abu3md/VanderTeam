@@ -42,7 +42,7 @@ document.addEventListener("click", e => {
     }
 });
 
-// --- وظائف العرض (Home & Details) ---
+// --- العرض الأساسي للصفحات ---
 
 function renderHome() {
     return `<div class="grid-container">${mangas.map(m => `
@@ -86,12 +86,12 @@ function renderDetails(container, title) {
         </div>`;
 }
 
-// --- القارئ (استخدام ArrayBuffer لتجاوز قيود CORS) ---
+// --- القارئ المطور (تجاوز CORS باستخدام البروكسي) ---
 
 async function renderReader(container, mTitle, cTitle) {
     const m = mangas.find(x => x.title === mTitle);
     const ch = m?.chapters.find(c => c.title === cTitle);
-    if (!ch) return container.innerHTML = "<h1 style='color:white; text-align:center;'>الفصل غير موجود</h1>";
+    if (!ch) return container.innerHTML = "<h1>الفصل غير موجود</h1>";
 
     container.innerHTML = `
         <div class="reader-container">
@@ -101,16 +101,19 @@ async function renderReader(container, mTitle, cTitle) {
             </div>
             <div id="reader-pages" class="chapter-images">
                 <div class="spinner"></div>
-                <p style="color:white; text-align:center;">جاري جلب بيانات الملف...</p>
+                <p style="color:white; text-align:center;">جاري جلب صفحات الفصل عبر البروكسي...</p>
             </div>
         </div>`;
     
     try {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
         
-        // محاولة جلب الملف كبيانات ArrayBuffer
-        const response = await fetch(ch.url);
-        if (!response.ok) throw new Error("CORS or Network Error");
+        // استخدام بروكسي AllOrigins لتجاوز قيود CORS الخاصة بـ Supabase
+        const proxyUrl = 'https://api.allorigins.win/raw?url=';
+        const finalUrl = proxyUrl + encodeURIComponent(ch.url);
+
+        const response = await fetch(finalUrl);
+        if (!response.ok) throw new Error("فشل البروكسي في جلب الملف");
         const arrayBuffer = await response.arrayBuffer();
 
         const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
@@ -136,13 +139,13 @@ async function renderReader(container, mTitle, cTitle) {
         console.error("Reader Error:", e);
         document.getElementById('reader-pages').innerHTML = `
             <div style="text-align:center; padding:40px; color: white;">
-                <p>⚠️ تعذر الوصول لبيانات الملف برمجياً (CORS Policy).</p>
-                <a href="${ch.url}" target="_blank" class="action-btn" style="text-decoration:none; background:var(--accent);">فتح الفصل في نافذة مستقلة</a>
+                <p>⚠️ تعذر معالجة الملف برمجياً حالياً.</p>
+                <a href="${ch.url}" target="_blank" class="action-btn" style="text-decoration:none; background:var(--accent);">فتح الفصل كملف PDF</a>
             </div>`;
     }
 }
 
-// --- إدارة البيانات (Admin) ---
+// --- لوحة التحكم (Admin) ---
 
 function renderAdmin(container) {
     if (!sessionStorage.getItem('isAdmin')) {
@@ -167,7 +170,7 @@ function showForm(type) {
     const area = document.getElementById('form-area');
     if(type === 'add') {
         area.innerHTML = `<div class="island">
-            <h3>بيانات المانجا</h3>
+            <h3>بيانات المانجا الجديدة</h3>
             <div class="admin-form-grid">
                 <input id="in-t" placeholder="العنوان"><input id="in-a" placeholder="الكاتب">
                 <input id="in-r" placeholder="الرسام"><input id="in-g" placeholder="التصنيفات">
@@ -214,14 +217,14 @@ function setupEdit(title) {
                 
                 <h4 style="margin-top:20px;">رفع فصل جديد</h4>
                 <div style="display:flex; gap:10px;">
-                    <input id="new-ch-t" placeholder="اسم الفصل"><input type="file" id="new-ch-f">
+                    <input id="new-ch-t" placeholder="رقم الفصل"><input type="file" id="new-ch-f">
                     <button class="action-btn" onclick="addNewChapter('${m.title}')" style="width:auto;">رفع</button>
                 </div>
             </div>
         </div>`;
 }
 
-// --- العمليات (Create / Update / Delete) ---
+// --- عمليات الـ CRUD ---
 
 async function deleteChapter(mTitle, index) {
     if(!confirm("حذف الفصل؟")) return;
@@ -243,13 +246,13 @@ async function updateChapter(mTitle, index) {
         m.chapters[index].url = data.publicUrl;
     }
     await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
-    alert("تم التعديل"); router();
+    alert("تم التحديث"); router();
 }
 
 async function addNewChapter(mTitle) {
     const title = document.getElementById('new-ch-t').value;
     const file = document.getElementById('new-ch-f').files[0];
-    if(!title || !file) return;
+    if(!title || !file) return alert("أدخل البيانات");
     const path = `chapters/${Date.now()}_${file.name}`;
     await _supabase.storage.from('vander-files').upload(path, file);
     const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
