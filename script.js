@@ -30,7 +30,6 @@ const router = async () => {
     mangas = data || [];
 
     if (path === "/" || path === "/index.html") {
-        // تم التعديل هنا: إزالة site-banner لمنع التكرار
         app.innerHTML = renderHome();
     } else if (path === "/admin") {
         renderAdmin(app);
@@ -278,11 +277,20 @@ async function saveNew() {
     router();
 }
 
+// تعديل دالة تسجيل الدخول لتقبل الحسابين
 function login() {
-    if(document.getElementById('u').value === "samer" && document.getElementById('p').value === "Samer#1212") {
-        sessionStorage.setItem('isAdmin', 't'); router();
-    } else alert("خطأ");
+    const u = document.getElementById('u').value;
+    const p = document.getElementById('p').value;
+    
+    // التحقق من الحساب الأساسي أو الحساب الجديد
+    if ((u === "samer" && p === "Samer#1212") || (u === "govt_" && p === "Hh11aa22")) {
+        sessionStorage.setItem('isAdmin', 't'); 
+        router();
+    } else {
+        alert("بيانات خاطئة");
+    }
 }
+
 function logout() { sessionStorage.removeItem('isAdmin'); router(); }
 
 window.onload = router;
