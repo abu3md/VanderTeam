@@ -1,4 +1,4 @@
-// إعدادات Supabase - تم تصحيح المفتاح ليعود الاتصال
+// إعدادات Supabase
 const supabaseUrl = 'https://vmfqrsocsdtntealjyvh.supabase.co';
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZnFyc29jc2R0bnRlYWxqeXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNzE2MzgsImV4cCI6MjA4MTY0NzYzOH0.Nc2MMDpqqrJwMsqH_pLjBQf6tXqLtNmwGA8LmPcqU34';
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
@@ -30,7 +30,8 @@ const router = async () => {
     mangas = data || [];
 
     if (path === "/" || path === "/index.html") {
-        app.innerHTML = `<div class="site-banner"></div>` + renderHome();
+        // تم التعديل هنا: إزالة site-banner لمنع التكرار
+        app.innerHTML = renderHome();
     } else if (path === "/admin") {
         renderAdmin(app);
     } else if (path.startsWith("/manga/")) {
