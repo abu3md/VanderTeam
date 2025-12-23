@@ -1,6 +1,6 @@
-// إعدادات Supabase
+// إعدادات Supabase - تم تصحيح المفتاح ليعود الاتصال
 const supabaseUrl = 'https://vmfqrsocsdtntealjyvh.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZتmZqcnNvY3NkdG50ZWFsanl2aCIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNzY2MDcxNjM4LCJleHAiOjIwODE2NDc2Mzh9.Nc2MMDpqqrJwMsqH_pLjBQf6tXqLtNmwGA8LmPcqU34';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZtZnFyc29jc2R0bnRlYWxqeXZoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjYwNzE2MzgsImV4cCI6MjA4MTY0NzYzOH0.Nc2MMDpqqrJwMsqH_pLjBQf6tXqLtNmwGA8LmPcqU34';
 const _supabase = supabase.createClient(supabaseUrl, supabaseKey);
 
 let mangas = [];
@@ -15,12 +15,18 @@ const router = async () => {
     const path = window.location.pathname;
     const app = document.getElementById('app');
     
+    // إظهار علامة التحميل
     if (!document.querySelector('.reader-iframe')) {
         app.innerHTML = '<div style="text-align:center; padding:100px; color:white;"><div class="spinner"></div></div>';
     }
 
+    // جلب البيانات من السيرفر
     const { data, error } = await _supabase.from('mangas').select('*').order('lastUpdated', { ascending: false });
-    if (error) console.error("Error:", error);
+    if (error) {
+        console.error("Error fetching data:", error);
+        app.innerHTML = "<h2 style='color:white; text-align:center;'>خطأ في الاتصال بقاعدة البيانات</h2>";
+        return;
+    }
     mangas = data || [];
 
     if (path === "/" || path === "/index.html") {
@@ -43,7 +49,10 @@ document.addEventListener("click", e => {
     }
 });
 
+// --- العرض ---
+
 function renderHome() {
+    if (mangas.length === 0) return "<h2 style='color:white; text-align:center;'>لا توجد مانجات حالياً</h2>";
     return `<div class="grid-container">${mangas.map(m => `
         <a href="/manga/${encodeURIComponent(m.title)}" class="manga-card" data-link style="text-decoration:none;">
             <div class="island" style="padding:0; overflow:hidden; aspect-ratio:1/1;">
@@ -105,6 +114,8 @@ function renderReader(container, mTitle, cTitle) {
             </div>
         </div>`;
 }
+
+// --- الإدارة ---
 
 function renderAdmin(container) {
     if (!sessionStorage.getItem('isAdmin')) {
@@ -187,41 +198,34 @@ function setupEdit(title) {
         </div>`;
 }
 
-// --- العمليات (CRUD) المحدثة ---
+// --- العمليات (CRUD) ---
 
 async function deleteFullManga(title) {
-    if(!confirm(`هل أنت متأكد من حذف مانجا "${title}" نهائياً مع كافة فصولها؟`)) return;
-    const { error } = await _supabase.from('mangas').delete().eq('title', title);
-    if(error) alert("خطأ في الحذف");
-    else { alert("تم حذف المانجا بنجاح"); router(); }
+    if(!confirm(`هل أنت متأكد من حذف مانجا "${title}" نهائياً؟`)) return;
+    await _supabase.from('mangas').delete().eq('title', title);
+    alert("تم حذف المانجا"); router();
 }
 
 async function saveEdit(oldT) {
     const newCoverFile = document.getElementById('ed-c').files[0];
     let updateData = {
-        title: document.getElementById('ed-t').value,
-        author: document.getElementById('ed-a').value,
-        artist: document.getElementById('ed-r').value,
-        genres: document.getElementById('ed-g').value,
-        publisher: document.getElementById('ed-pub').value,
-        releaseDate: document.getElementById('ed-date').value,
-        desc: document.getElementById('ed-d').value,
-        lastUpdated: new Date()
+        title: document.getElementById('ed-t').value, author: document.getElementById('ed-a').value,
+        artist: document.getElementById('ed-r').value, genres: document.getElementById('ed-g').value,
+        publisher: document.getElementById('ed-pub').value, releaseDate: document.getElementById('ed-date').value,
+        desc: document.getElementById('ed-d').value, lastUpdated: new Date()
     };
-
     if(newCoverFile) {
         const path = `covers/${Date.now()}_${newCoverFile.name}`;
         await _supabase.storage.from('vander-files').upload(path, newCoverFile);
         const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
         updateData.cover = data.publicUrl;
     }
-
     await _supabase.from('mangas').update(updateData).eq('title', oldT);
     alert("تم التعديل"); router();
 }
 
 async function deleteChapter(mTitle, index) {
-    if(!confirm("تأكيد حذف الفصل؟")) return;
+    if(!confirm("حذف الفصل؟")) return;
     const m = mangas.find(x => x.title === mTitle);
     m.chapters.splice(index, 1);
     await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
@@ -240,13 +244,13 @@ async function updateChapter(mTitle, index) {
         m.chapters[index].url = data.publicUrl;
     }
     await _supabase.from('mangas').update({ chapters: m.chapters }).eq('title', mTitle);
-    alert("تم تحديث الفصل"); router();
+    alert("تم التحديث"); router();
 }
 
 async function addNewChapter(mTitle) {
     const title = document.getElementById('new-ch-t').value;
     const file = document.getElementById('new-ch-f').files[0];
-    if(!title || !file) return alert("يرجى اختيار ملف وعنوان");
+    if(!title || !file) return alert("بيانات ناقصة");
     const path = `chapters/${Date.now()}_${file.name}`;
     await _supabase.storage.from('vander-files').upload(path, file);
     const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
@@ -259,7 +263,7 @@ async function addNewChapter(mTitle) {
 async function saveNew() {
     const title = document.getElementById('in-t').value;
     const file = document.getElementById('in-c').files[0];
-    if(!title || !file) return alert("مطلوب العنوان والغلاف");
+    if(!title || !file) return alert("بيانات ناقصة");
     const path = `covers/${Date.now()}_${file.name}`;
     await _supabase.storage.from('vander-files').upload(path, file);
     const { data } = _supabase.storage.from('vander-files').getPublicUrl(path);
@@ -276,7 +280,7 @@ async function saveNew() {
 function login() {
     if(document.getElementById('u').value === "samer" && document.getElementById('p').value === "Samer#1212") {
         sessionStorage.setItem('isAdmin', 't'); router();
-    } else alert("بيانات خاطئة");
+    } else alert("خطأ");
 }
 function logout() { sessionStorage.removeItem('isAdmin'); router(); }
 
